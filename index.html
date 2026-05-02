@@ -1179,17 +1179,56 @@ function showToast(msg, type) {
 
 // ─── INIT ──────────────────────────────────────────────────────────────
 function init() {
-  // Restore session
   const savedUser = localStorage.getItem('vcc_user');
   const savedResp = localStorage.getItem('vcc_respuestas');
-  if (savedResp) state.respuestas = JSON.parse(savedResp);
+  if (savedResp) {
+    try { state.respuestas = JSON.parse(savedResp); } catch(e) {}
+  }
   if (savedUser) {
-    state.user = JSON.parse(savedUser);
-    renderHome();
-    showScreen('screen-home');
+    try {
+      state.user = JSON.parse(savedUser);
+      renderHome();
+      showScreen('screen-home');
+      // Cargar respuestas desde Google Sheets en background
+      loadResponsesFromSheets();
+    } catch(e) {
+      showScreen('screen-login');
+    }
   } else {
     showScreen('screen-login');
   }
+}
+
+function loadResponsesFromSheets() {
+  if (!navigator.onLine) return;
+  const url = SHEETS_URL + '?action=getResponses&email=' + encodeURIComponent(state.user.email);
+  fetch(url)
+    .then(r => r.json())
+    .then(data => {
+      if (data && data.respuestas) {
+        // Merge con respuestas locales
+        data.respuestas.forEach(r => {
+          const key = `${r.vcc}_${r.control}_${r.pregunta_id}`;
+          if (!state.respuestas[key]) {
+            state.respuestas[key] = {
+              vcc: r.vcc,
+              control: r.control,
+              pregunta: r.pregunta_id,
+              resultado: r.resultado,
+              comentario: r.comentario,
+              observacion: r.observacion,
+              plan: r.plan,
+              fecha: r.fecha,
+              verificador: r.verificador,
+              email: r.email
+            };
+          }
+        });
+        localStorage.setItem('vcc_respuestas', JSON.stringify(state.respuestas));
+        renderHome();
+      }
+    })
+    .catch(() => {}); // Sin internet - usar caché local
 }
 
 init();
