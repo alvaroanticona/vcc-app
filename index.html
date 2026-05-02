@@ -1027,10 +1027,38 @@ function guardarRespuesta() {
   // Actualizar stats
   document.getElementById('stat-respondidas').textContent = Object.keys(state.respuestas).length;
 
+  const vccId = state.currentVCC;
+  const ctrlId = state.currentControl;
+  
   setTimeout(() => {
-    goBack();
-    openPreguntas(state.currentVCC, state.currentControl);
-    state.screenStack.pop();
+    // Go back to preguntas screen directly
+    state.screenStack = state.screenStack.filter(s => s !== 'screen-preguntas');
+    showScreen('screen-preguntas');
+    // Refresh preguntas content
+    const ctrl = VCC_DATA[vccId].controles[ctrlId];
+    const total = ctrl.preguntas.length;
+    const respondidas = ctrl.preguntas.filter(p => state.respuestas[`${vccId}_${ctrlId}_${p.id}`]).length;
+    
+    // Update progress bar
+    document.getElementById('preg-progress-container').innerHTML = `
+      <div class="progress-info">
+        <span>${respondidas} de ${total} preguntas respondidas</span>
+        <span>${Math.round(respondidas/total*100)}%</span>
+      </div>
+      <div class="progress-track"><div class="progress-fill" style="width:${respondidas/total*100}%"></div></div>`;
+
+    // Update each pregunta card
+    ctrl.preguntas.forEach((p, idx) => {
+      const key = `${vccId}_${ctrlId}_${p.id}`;
+      const resp = state.respuestas[key];
+      const card = document.getElementById(`pcard-${p.id}`);
+      if (card) {
+        card.className = `pregunta-card ${resp ? `answered-${resp.resultado.toLowerCase()}` : ''}`;
+        card.querySelector('.pregunta-estado').innerHTML = `
+          <span class="respuesta-badge ${resp ? resp.resultado.toLowerCase() : 'pendiente'}">${resp ? resp.resultado : 'Pendiente'}</span>
+          <span class="tap-to-answer">${resp ? 'Toca para editar' : 'Toca para responder'}</span>`;
+      }
+    });
   }, 800);
 }
 
