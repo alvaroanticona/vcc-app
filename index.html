@@ -1017,15 +1017,21 @@ function guardarRespuesta() {
     comentario: document.getElementById('form-comentario').value,
     observacion: document.getElementById('form-observacion').value,
     plan: document.getElementById('form-plan').value,
-    foto: state.formData.foto,
-    fotoHallazgo: state.formData.fotoHallazgo,
     fecha: new Date().toISOString(),
     verificador: state.user.nombre,
     email: state.user.email
+    // fotos NO se guardan en localStorage para no llenar el almacenamiento
   };
 
   state.respuestas[key] = registro;
-  localStorage.setItem('vcc_respuestas', JSON.stringify(state.respuestas));
+  try {
+    localStorage.setItem('vcc_respuestas', JSON.stringify(state.respuestas));
+  } catch(e) {
+    // localStorage lleno - limpiar fotos antiguas y reintentar
+    console.log('Storage full, clearing old data');
+    localStorage.removeItem('vcc_pending');
+    try { localStorage.setItem('vcc_respuestas', JSON.stringify(state.respuestas)); } catch(e2) {}
+  }
 
   // Guardar en Google Sheets
   const payload = {
