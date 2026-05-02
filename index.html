@@ -1,0 +1,1040 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="theme-color" content="#1a2744">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>VCC - Controles Críticos</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy: #1a2744;
+    --navy-light: #243358;
+    --blue: #2563eb;
+    --blue-light: #3b82f6;
+    --gold: #f59e0b;
+    --green: #10b981;
+    --red: #ef4444;
+    --gray-50: #f8fafc;
+    --gray-100: #f1f5f9;
+    --gray-200: #e2e8f0;
+    --gray-400: #94a3b8;
+    --gray-600: #475569;
+    --gray-800: #1e293b;
+    --white: #ffffff;
+    --shadow: 0 4px 24px rgba(26,39,68,0.15);
+    --shadow-sm: 0 2px 8px rgba(26,39,68,0.1);
+    --radius: 16px;
+    --radius-sm: 10px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    font-family: 'Barlow', sans-serif;
+    background: var(--gray-100);
+    color: var(--gray-800);
+    min-height: 100vh;
+    max-width: 430px;
+    margin: 0 auto;
+    position: relative;
+  }
+
+  /* SCREENS */
+  .screen { display: none; min-height: 100vh; flex-direction: column; }
+  .screen.active { display: flex; }
+
+  /* LOGIN */
+  #screen-login {
+    background: linear-gradient(160deg, var(--navy) 0%, #0f1d3a 60%, #1a2744 100%);
+    justify-content: center;
+    align-items: center;
+    padding: 40px 24px;
+    position: relative;
+    overflow: hidden;
+  }
+  #screen-login::before {
+    content: '';
+    position: absolute;
+    width: 400px; height: 400px;
+    background: radial-gradient(circle, rgba(37,99,235,0.15) 0%, transparent 70%);
+    top: -100px; right: -100px;
+  }
+  #screen-login::after {
+    content: '';
+    position: absolute;
+    width: 300px; height: 300px;
+    background: radial-gradient(circle, rgba(245,158,11,0.08) 0%, transparent 70%);
+    bottom: 50px; left: -50px;
+  }
+  .login-content { width: 100%; max-width: 340px; z-index: 1; }
+  .login-logo {
+    text-align: center;
+    margin-bottom: 48px;
+  }
+  .login-logo .logo-icon {
+    width: 72px; height: 72px;
+    background: linear-gradient(135deg, var(--blue), var(--blue-light));
+    border-radius: 20px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 16px;
+    box-shadow: 0 8px 32px rgba(37,99,235,0.4);
+  }
+  .login-logo .logo-icon svg { width: 40px; height: 40px; fill: white; }
+  .login-logo h1 {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 32px;
+    font-weight: 800;
+    color: white;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+  .login-logo p { color: rgba(255,255,255,0.5); font-size: 13px; letter-spacing: 1px; margin-top: 4px; }
+  .login-card {
+    background: rgba(255,255,255,0.06);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: var(--radius);
+    padding: 32px 24px;
+  }
+  .login-card h2 { color: white; font-size: 20px; font-weight: 600; margin-bottom: 8px; }
+  .login-card p { color: rgba(255,255,255,0.5); font-size: 14px; margin-bottom: 24px; }
+  .input-group { margin-bottom: 16px; }
+  .input-group label { display: block; color: rgba(255,255,255,0.7); font-size: 13px; font-weight: 500; margin-bottom: 8px; }
+  .input-group input {
+    width: 100%;
+    padding: 14px 16px;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: var(--radius-sm);
+    color: white;
+    font-size: 15px;
+    font-family: 'Barlow', sans-serif;
+    transition: all 0.2s;
+  }
+  .input-group input:focus { outline: none; border-color: var(--blue-light); background: rgba(255,255,255,0.12); }
+  .input-group input::placeholder { color: rgba(255,255,255,0.3); }
+  .btn-primary {
+    width: 100%;
+    padding: 16px;
+    background: linear-gradient(135deg, var(--blue), var(--blue-light));
+    color: white;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-size: 16px;
+    font-weight: 600;
+    font-family: 'Barlow', sans-serif;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 4px 16px rgba(37,99,235,0.4);
+    margin-top: 8px;
+  }
+  .btn-primary:active { transform: scale(0.98); }
+
+  /* HEADER */
+  .app-header {
+    background: var(--navy);
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: var(--shadow-sm);
+  }
+  .btn-back {
+    width: 36px; height: 36px;
+    background: rgba(255,255,255,0.1);
+    border: none;
+    border-radius: 10px;
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    flex-shrink: 0;
+  }
+  .btn-back:active { background: rgba(255,255,255,0.2); }
+  .header-title { flex: 1; }
+  .header-title h2 { color: white; font-size: 17px; font-weight: 600; line-height: 1.2; }
+  .header-title p { color: rgba(255,255,255,0.5); font-size: 12px; margin-top: 2px; }
+  .header-avatar {
+    width: 36px; height: 36px;
+    background: linear-gradient(135deg, var(--blue), var(--gold));
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 14px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  /* HOME SCREEN */
+  .home-hero {
+    background: linear-gradient(160deg, var(--navy) 0%, var(--navy-light) 100%);
+    padding: 28px 20px 32px;
+    position: relative;
+    overflow: hidden;
+  }
+  .home-hero::after {
+    content: '';
+    position: absolute;
+    width: 200px; height: 200px;
+    background: radial-gradient(circle, rgba(37,99,235,0.2) 0%, transparent 70%);
+    right: -40px; top: -40px;
+  }
+  .home-greeting { color: rgba(255,255,255,0.6); font-size: 14px; margin-bottom: 4px; }
+  .home-name { color: white; font-size: 24px; font-weight: 700; margin-bottom: 20px; }
+  .home-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    position: relative;
+    z-index: 1;
+  }
+  .stat-card {
+    background: rgba(255,255,255,0.08);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: var(--radius-sm);
+    padding: 14px;
+  }
+  .stat-card .stat-num { color: white; font-size: 28px; font-weight: 800; font-family: 'Barlow Condensed', sans-serif; }
+  .stat-card .stat-label { color: rgba(255,255,255,0.5); font-size: 12px; margin-top: 2px; }
+
+  .section-header {
+    padding: 20px 20px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .section-header h3 { font-size: 16px; font-weight: 700; color: var(--gray-800); }
+  .section-header span { font-size: 13px; color: var(--gray-400); }
+
+  /* VCC CARDS */
+  .vcc-list { padding: 0 16px 20px; display: flex; flex-direction: column; gap: 12px; }
+  .vcc-card {
+    background: white;
+    border-radius: var(--radius);
+    padding: 18px;
+    box-shadow: var(--shadow-sm);
+    cursor: pointer;
+    transition: all 0.2s;
+    border-left: 4px solid var(--blue);
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    animation: slideUp 0.3s ease both;
+  }
+  .vcc-card:active { transform: scale(0.98); box-shadow: var(--shadow); }
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .vcc-badge {
+    width: 48px; height: 48px;
+    background: linear-gradient(135deg, var(--navy), var(--navy-light));
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .vcc-badge span {
+    color: white;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+  }
+  .vcc-info { flex: 1; min-width: 0; }
+  .vcc-code { font-size: 12px; font-weight: 600; color: var(--blue); text-transform: uppercase; letter-spacing: 0.5px; }
+  .vcc-desc { font-size: 14px; font-weight: 500; color: var(--gray-800); line-height: 1.3; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .vcc-meta { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+  .vcc-status {
+    font-size: 11px; font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 20px;
+    background: #fef3c7; color: #d97706;
+  }
+  .vcc-status.done { background: #d1fae5; color: #059669; }
+  .vcc-arrow { color: var(--gray-400); flex-shrink: 0; }
+
+  /* CONTROLES SCREEN */
+  .controls-content { flex: 1; padding: 16px; overflow-y: auto; }
+  .tipo-section { margin-bottom: 20px; }
+  .tipo-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    border-radius: var(--radius-sm);
+    margin-bottom: 10px;
+  }
+  .tipo-header.preventivo { background: linear-gradient(135deg, #dbeafe, #eff6ff); }
+  .tipo-header.mitigador { background: linear-gradient(135deg, #fef3c7, #fffbeb); }
+  .tipo-icon {
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .tipo-header.preventivo .tipo-icon { background: var(--blue); }
+  .tipo-header.mitigador .tipo-icon { background: var(--gold); }
+  .tipo-icon svg { width: 18px; height: 18px; fill: white; }
+  .tipo-title { font-size: 15px; font-weight: 700; }
+  .tipo-header.preventivo .tipo-title { color: var(--blue); }
+  .tipo-header.mitigador .tipo-title { color: #92400e; }
+  .tipo-count { font-size: 12px; margin-left: auto; padding: 3px 10px; border-radius: 20px; font-weight: 600; }
+  .tipo-header.preventivo .tipo-count { background: var(--blue); color: white; }
+  .tipo-header.mitigador .tipo-count { background: var(--gold); color: white; }
+
+  .control-card {
+    background: white;
+    border-radius: var(--radius-sm);
+    padding: 14px 16px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border: 1px solid var(--gray-200);
+    animation: slideUp 0.25s ease both;
+  }
+  .control-card:active { transform: scale(0.98); background: var(--gray-50); }
+  .control-code {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 8px;
+    border-radius: 6px;
+    background: var(--navy);
+    color: white;
+    letter-spacing: 0.5px;
+    flex-shrink: 0;
+    font-family: 'Barlow Condensed', sans-serif;
+  }
+  .control-info { flex: 1; min-width: 0; }
+  .control-desc { font-size: 13px; font-weight: 500; color: var(--gray-800); line-height: 1.3; }
+  .control-pregs { font-size: 12px; color: var(--gray-400); margin-top: 3px; }
+  .control-progress {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    flex-shrink: 0;
+    background: var(--gray-100);
+    color: var(--gray-400);
+  }
+  .control-progress.done { background: #d1fae5; color: #059669; }
+  .control-progress.partial { background: #fef3c7; color: #d97706; }
+
+  /* PREGUNTAS SCREEN */
+  .preguntas-content { flex: 1; padding: 12px 16px 20px; overflow-y: auto; }
+  .control-info-banner {
+    background: linear-gradient(135deg, var(--navy), var(--navy-light));
+    border-radius: var(--radius-sm);
+    padding: 14px 16px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .control-info-banner .code-badge {
+    background: rgba(255,255,255,0.15);
+    color: white;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    padding: 6px 12px;
+    border-radius: 8px;
+    flex-shrink: 0;
+  }
+  .control-info-banner p { color: rgba(255,255,255,0.85); font-size: 13px; line-height: 1.3; }
+
+  .pregunta-card {
+    background: white;
+    border-radius: var(--radius-sm);
+    padding: 16px;
+    margin-bottom: 10px;
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--gray-200);
+    cursor: pointer;
+    transition: all 0.2s;
+    animation: slideUp 0.2s ease both;
+  }
+  .pregunta-card:active { transform: scale(0.99); }
+  .pregunta-card.answered-si { border-left: 4px solid var(--green); }
+  .pregunta-card.answered-no { border-left: 4px solid var(--red); }
+  .pregunta-num { font-size: 11px; font-weight: 700; color: var(--blue); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+  .pregunta-text { font-size: 14px; color: var(--gray-800); line-height: 1.45; font-weight: 400; }
+  .pregunta-estado {
+    margin-top: 12px;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  .respuesta-badge {
+    font-size: 12px;
+    font-weight: 700;
+    padding: 4px 12px;
+    border-radius: 20px;
+    letter-spacing: 0.5px;
+  }
+  .respuesta-badge.si { background: #d1fae5; color: #059669; }
+  .respuesta-badge.no { background: #fee2e2; color: #dc2626; }
+  .respuesta-badge.pendiente { background: var(--gray-100); color: var(--gray-400); }
+  .tap-to-answer { font-size: 12px; color: var(--gray-400); }
+
+  /* FORMULARIO */
+  #screen-form { background: var(--gray-50); }
+  .form-content { flex: 1; padding: 16px; overflow-y: auto; }
+  .pregunta-box {
+    background: white;
+    border-radius: var(--radius-sm);
+    padding: 16px;
+    margin-bottom: 16px;
+    border-left: 4px solid var(--blue);
+    box-shadow: var(--shadow-sm);
+  }
+  .pregunta-box .label { font-size: 11px; font-weight: 700; color: var(--blue); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+  .pregunta-box .text { font-size: 14px; color: var(--gray-800); line-height: 1.5; }
+
+  .form-section { margin-bottom: 20px; }
+  .form-label { font-size: 13px; font-weight: 600; color: var(--gray-600); margin-bottom: 10px; display: block; }
+  .si-no-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .btn-sn {
+    padding: 18px;
+    border-radius: var(--radius-sm);
+    border: 2px solid var(--gray-200);
+    background: white;
+    font-size: 20px;
+    font-weight: 800;
+    font-family: 'Barlow Condensed', sans-serif;
+    letter-spacing: 2px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    color: var(--gray-400);
+  }
+  .btn-sn .btn-sn-icon { font-size: 28px; }
+  .btn-sn.selected-si {
+    border-color: var(--green);
+    background: #d1fae5;
+    color: #059669;
+    box-shadow: 0 0 0 4px rgba(16,185,129,0.1);
+  }
+  .btn-sn.selected-no {
+    border-color: var(--red);
+    background: #fee2e2;
+    color: #dc2626;
+    box-shadow: 0 0 0 4px rgba(239,68,68,0.1);
+  }
+
+  .foto-btn {
+    width: 100%;
+    padding: 16px;
+    background: white;
+    border: 2px dashed var(--gray-200);
+    border-radius: var(--radius-sm);
+    color: var(--gray-400);
+    font-size: 14px;
+    font-family: 'Barlow', sans-serif;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+  .foto-btn:active { background: var(--gray-50); border-color: var(--blue); color: var(--blue); }
+  .foto-preview { width: 100%; border-radius: var(--radius-sm); max-height: 200px; object-fit: cover; margin-top: 10px; }
+
+  .form-textarea {
+    width: 100%;
+    padding: 14px;
+    border: 1.5px solid var(--gray-200);
+    border-radius: var(--radius-sm);
+    font-size: 14px;
+    font-family: 'Barlow', sans-serif;
+    color: var(--gray-800);
+    resize: none;
+    min-height: 90px;
+    background: white;
+    transition: border-color 0.2s;
+  }
+  .form-textarea:focus { outline: none; border-color: var(--blue); }
+
+  .hallazgo-section {
+    background: #fff7ed;
+    border: 1.5px solid #fed7aa;
+    border-radius: var(--radius-sm);
+    padding: 16px;
+    margin-bottom: 16px;
+    display: none;
+  }
+  .hallazgo-section.show { display: block; animation: slideUp 0.3s ease; }
+  .hallazgo-section .hallazgo-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: #c2410c;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 14px;
+  }
+
+  .btn-guardar {
+    width: 100%;
+    padding: 18px;
+    background: linear-gradient(135deg, var(--navy), var(--navy-light));
+    color: white;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-size: 17px;
+    font-weight: 700;
+    font-family: 'Barlow Condensed', sans-serif;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 4px 16px rgba(26,39,68,0.4);
+    margin-top: 8px;
+    margin-bottom: 32px;
+  }
+  .btn-guardar:active { transform: scale(0.98); }
+
+  /* TOAST */
+  .toast {
+    position: fixed;
+    bottom: 32px;
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: var(--gray-800);
+    color: white;
+    padding: 12px 24px;
+    border-radius: 40px;
+    font-size: 14px;
+    font-weight: 500;
+    z-index: 1000;
+    transition: transform 0.3s ease;
+    white-space: nowrap;
+    box-shadow: var(--shadow);
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+  .toast.success { background: var(--green); }
+
+  /* PROGRESS BAR */
+  .progress-bar-container { padding: 0 16px 16px; }
+  .progress-info { display: flex; justify-content: space-between; margin-bottom: 6px; }
+  .progress-info span { font-size: 12px; color: var(--gray-600); font-weight: 500; }
+  .progress-track { height: 6px; background: var(--gray-200); border-radius: 20px; overflow: hidden; }
+  .progress-fill { height: 100%; background: linear-gradient(90deg, var(--blue), var(--blue-light)); border-radius: 20px; transition: width 0.4s ease; }
+
+  .input-file-hidden { display: none; }
+</style>
+</head>
+<body>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- SCREEN: LOGIN -->
+<div id="screen-login" class="screen active">
+  <div class="login-content">
+    <div class="login-logo">
+      <div class="logo-icon">
+        <svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z"/></svg>
+      </div>
+      <h1>VCC</h1>
+      <p>CONTROLES CRÍTICOS · AESA</p>
+    </div>
+    <div class="login-card">
+      <h2>Iniciar sesión</h2>
+      <p>Ingresa tu correo para continuar</p>
+      <div class="input-group">
+        <label>Correo electrónico</label>
+        <input type="email" id="login-email" placeholder="tu@correo.com" autocomplete="email">
+      </div>
+      <div class="input-group">
+        <label>Nombre</label>
+        <input type="text" id="login-nombre" placeholder="Tu nombre completo">
+      </div>
+      <button class="btn-primary" onclick="doLogin()">Ingresar a la app</button>
+    </div>
+  </div>
+</div>
+
+<!-- SCREEN: HOME -->
+<div id="screen-home" class="screen">
+  <div class="app-header">
+    <div class="header-title">
+      <h2>Mis Riesgos</h2>
+      <p id="home-subtitle">VCCs asignados</p>
+    </div>
+    <div class="header-avatar" id="home-avatar">A</div>
+  </div>
+  <div class="home-hero">
+    <div class="home-greeting">Hola,</div>
+    <div class="home-name" id="home-name">Verificador</div>
+    <div class="home-stats">
+      <div class="stat-card">
+        <div class="stat-num" id="stat-vccs">0</div>
+        <div class="stat-label">VCCs asignados</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" id="stat-respondidas">0</div>
+        <div class="stat-label">Preguntas respondidas</div>
+      </div>
+    </div>
+  </div>
+  <div class="section-header">
+    <h3>Riesgos Fatales</h3>
+    <span id="home-mes">Mes actual</span>
+  </div>
+  <div class="vcc-list" id="vcc-list"></div>
+</div>
+
+<!-- SCREEN: CONTROLES -->
+<div id="screen-controles" class="screen">
+  <div class="app-header">
+    <button class="btn-back" onclick="goBack()">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <div class="header-title">
+      <h2 id="ctrl-vcc-title">VCC01</h2>
+      <p id="ctrl-vcc-sub">Controles críticos</p>
+    </div>
+  </div>
+  <div class="controls-content" id="controls-content"></div>
+</div>
+
+<!-- SCREEN: PREGUNTAS -->
+<div id="screen-preguntas" class="screen">
+  <div class="app-header">
+    <button class="btn-back" onclick="goBack()">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <div class="header-title">
+      <h2 id="preg-ctrl-title">CCP1</h2>
+      <p id="preg-ctrl-sub">Preguntas</p>
+    </div>
+  </div>
+  <div class="progress-bar-container" id="preg-progress-container"></div>
+  <div class="preguntas-content" id="preguntas-content"></div>
+</div>
+
+<!-- SCREEN: FORM -->
+<div id="screen-form" class="screen">
+  <div class="app-header">
+    <button class="btn-back" onclick="goBack()">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <div class="header-title">
+      <h2>Verificar Control</h2>
+      <p id="form-subtitle">Registro de evidencia</p>
+    </div>
+  </div>
+  <div class="form-content">
+    <div class="pregunta-box">
+      <div class="label">Pregunta</div>
+      <div class="text" id="form-pregunta-text"></div>
+    </div>
+
+    <div class="form-section">
+      <span class="form-label">¿Se cumple el control?</span>
+      <div class="si-no-buttons">
+        <button class="btn-sn" id="btn-si" onclick="selectRespuesta('SI')">
+          <span class="btn-sn-icon">✓</span>
+          SI
+        </button>
+        <button class="btn-sn" id="btn-no" onclick="selectRespuesta('NO')">
+          <span class="btn-sn-icon">✗</span>
+          NO
+        </button>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <span class="form-label">Foto de evidencia (opcional)</span>
+      <button class="foto-btn" onclick="document.getElementById('foto-input').click()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+        Tomar foto o adjuntar
+      </button>
+      <input type="file" accept="image/*" capture="environment" class="input-file-hidden" id="foto-input" onchange="handleFoto(this)">
+      <img id="foto-preview" class="foto-preview" style="display:none">
+    </div>
+
+    <div class="form-section">
+      <span class="form-label">Comentario (opcional)</span>
+      <textarea class="form-textarea" id="form-comentario" placeholder="Agrega un comentario..."></textarea>
+    </div>
+
+    <div class="hallazgo-section" id="hallazgo-section">
+      <div class="hallazgo-title">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="#c2410c"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+        Hallazgo detectado — Respuesta NO
+      </div>
+      <div class="form-section" style="margin-bottom:14px">
+        <span class="form-label">Observación / Hallazgo</span>
+        <textarea class="form-textarea" id="form-observacion" placeholder="Describe el hallazgo encontrado..."></textarea>
+      </div>
+      <div class="form-section" style="margin-bottom:14px">
+        <span class="form-label">Plan de acción</span>
+        <textarea class="form-textarea" id="form-plan" placeholder="¿Qué acción se tomará para corregirlo?"></textarea>
+      </div>
+      <div class="form-section" style="margin-bottom:0">
+        <span class="form-label">Foto del hallazgo</span>
+        <button class="foto-btn" onclick="document.getElementById('foto-hallazgo-input').click()">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+          Foto del hallazgo
+        </button>
+        <input type="file" accept="image/*" capture="environment" class="input-file-hidden" id="foto-hallazgo-input" onchange="handleFotoHallazgo(this)">
+        <img id="foto-hallazgo-preview" class="foto-preview" style="display:none">
+      </div>
+    </div>
+
+    <button class="btn-guardar" onclick="guardarRespuesta()">GUARDAR VERIFICACIÓN</button>
+  </div>
+</div>
+
+<script>
+// ─── DATA ──────────────────────────────────────────────────────────────
+const VCC_DATA = {"VCC01":{"desc":"Pérdida de control de vehículo en el transporte de personal en Buses y Minibuses dentro y fuera de la UM","controles":{"CCP1":{"tipo":"Preventivo","desc":"Cumplimiento del programa de mantenimiento preventivo.","preguntas":[{"id":"P01","texto":"1. ¿Programa de mantenimiento preventivo del vehículo disponible y actualizado? (Actualizado a los 12 ultimos meses)"},{"id":"P02","texto":"2. ¿Evidencia de la ejecución de los 02 últimos mantenimientos preventivos(certificado de operatividad)?"},{"id":"P03","texto":"3. ¿Evidencia que el mantenimiento preventivo se ejecutó en la casa matriz u otro, que cumplan con el Art. 389 del D.S. 024-2016-EM ?"},{"id":"P04","texto":"4. ¿Evidencia de mantenimientos correctivos en los 03 último meses?"}]},"CCP2":{"tipo":"Preventivo","desc":"Permiso interno de conducción - PIC vigente y evaluación de las competencias de los conductores.","preguntas":[{"id":"P05","texto":"1. ¿PIC en físico, se encuentra vigente y legible?"},{"id":"P06","texto":"2. ¿Se evidencia competencias del conductor? 5 años de experiencia, licencia del MTC con la categoria requerida y sin infracciones en el último año."},{"id":"P07","texto":"3. ¿Se realiza el reconocimiento de las rutas antes de que un conductor ejecute el servicio?"}]},"CCP3":{"tipo":"Preventivo","desc":"Programa de fatiga y somnolencia, uso de tecnologias de monitoreo de calidad de sueño.","preguntas":[{"id":"P08","texto":"1. ¿Dispositivo de monitoreo de fatiga y somnolencia en cabina, disponible y operativo?"},{"id":"P09","texto":"2. ¿El dispositivo de monitoreo / alerta envia a seguridad vial las alertas y reportes en la frecuencia establecida?"},{"id":"P10","texto":"3. ¿El conductor evidencia conocimiento y acciones a tomar ante los signos de fatiga y somnolencia?"},{"id":"P11","texto":"4. ¿Las condiciones de habitabilidad permiten tener un sueño reparador?"}]},"CCP4":{"tipo":"Preventivo","desc":"Prueba de alcotest diaria previa a la entrega de llaves y conducción.","preguntas":[{"id":"P12","texto":"1. ¿Se evidencia la calibración vigente del equipo a usar para prueba de alcotest?"},{"id":"P13","texto":"2. ¿Se evidencia muestrealmente a nivel fotográfico fechado la ejecución de la prueba del alcotest y los resultados?"}]},"CCP5":{"tipo":"Preventivo","desc":"Monitoreo telemático de la conducción de vehículos.","preguntas":[{"id":"P14","texto":"1. ¿El vehículo cuenta con un sistema de telemetría operativo (Ej.: GPS, Mix Telematics)?"},{"id":"P15","texto":"2. ¿El sistema envía alertas en tiempo real como: Exceso de velocidad, frenadas bruscas, otros?"}]},"CCP6":{"tipo":"Preventivo","desc":"Cumplimiento del programa de inspección de vias internas y alternas.","preguntas":[{"id":"P16","texto":"1. ¿Se cuenta con un cronograma de inspección a las rutas alternas?"},{"id":"P17","texto":"2. ¿Se cumple con el mantenimiento de vías previa identificación de los desvíos?"},{"id":"P18","texto":"3. ¿El conductor sabe como actuar ante una condición insegura en la vía o clima adverso?"}]},"CCM1":{"tipo":"Mitigadores","desc":"Sistema ROPS - FOPS para vehiculos de transporte con certificación R66.02.","preguntas":[{"id":"P19","texto":"1. ¿Se evidencia que los vehículos tienen instaladas la Jaula de Seguridad tipo ROPS - FOPS?"},{"id":"P20","texto":"2. ¿Las Jaulas tipo ROPS - FOPS tienen certificación suscrita por un profesional habilitado y colegiado?"}]},"CCM2":{"tipo":"Mitigadores","desc":"Uso de cinturón de seguridad. Airbag disponibles y operativos.","preguntas":[{"id":"P21","texto":"1. ¿Se evidencia que los vehículos cuentan con Cinturones de Seguridad de 3 puntos en buenas condiciones?"},{"id":"P22","texto":"2. ¿Se ha ejecutado el mantenimiento a los cinturones, se presenta evidencia?"}]},"CCM 3":{"tipo":"Mitigadores","desc":"Sistema de extinción de incendios operativo.","preguntas":[{"id":"P23","texto":"1. ¿El vehículo cuenta con un extintor portatil con certificación NFPA / UL?"},{"id":"P24","texto":"2. ¿El extintor cuenta con fechas de prueba hidrostática, mantenimiento y recarga vigentes?"},{"id":"P25","texto":"3. ¿El conductor cuenta con entrenamiento vigente en uso de extintores portatiles?"}]},"CCM 4":{"tipo":"Mitigadores","desc":"Ante emergencias y/o fallas mecánicas del vehículo, se cuenta con personal competente.","preguntas":[{"id":"P26","texto":"1. ¿Se cuenta con un protocolo de respuesta emergencias y/o fallas mecánicas del vehículo?"},{"id":"P27","texto":"2. ¿Se evidencia contar con personal competente para actuar ante una emergencia?"},{"id":"P28","texto":"3. ¿Se cuenta con herramientas para emergencias y/o fallas mecánicas del vehículo?"}]}}},"VCC02":{"desc":"Pérdida de control de vehículo en el transporte de concentrado y Matpel","controles":{"CCP1":{"tipo":"Preventivo","desc":"Evaluar las competencias de los conductores en la vía y/o simulador.","preguntas":[{"id":"P29","texto":"1. ¿La empresa de transporte ha realizado la evaluación de competencias en forma practica al 100% de sus conductores?"},{"id":"P30","texto":"2. ¿Cuenta con registros documentados y firmados por el líder directo?"}]},"CCP2":{"tipo":"Preventivo","desc":"Monitorear telemetria de los vehículos y al conductor.","preguntas":[{"id":"P31","texto":"1. ¿Las empresas de transporte asignadas cuentan con monitoreo en tiempo real de sus vehículos?"},{"id":"P32","texto":"2. ¿Se analizan los reportes de velocidad, geocercas y alerta de conducción riesgosa?"},{"id":"P33","texto":"3. ¿Se cuenta con reporte/informe mediante el cual se realiza el análisis de conducciones riesgosas?"}]},"CCP3":{"tipo":"Preventivo","desc":"Prueba de detección del alcohol en aliento previo al encendido del vehículo.","preguntas":[{"id":"P34","texto":"1. ¿Se encuentra implementado el sistema de control de alcohol previo al encendido del vehículo en el 100% de la flota?"},{"id":"P35","texto":"2. ¿Existe un registro actualizado de pruebas aleatorias de drogas?"}]},"CCM1":{"tipo":"Mitigadores","desc":"Uso de cinturón de seguridad de 3 puntos operativo y en buen estado.","preguntas":[{"id":"P50","texto":"1. ¿Se ha verificado el buen estado del cinturón en los vehículos inspeccionados?"},{"id":"P51","texto":"2. ¿Durante la inspección se encontró a los conductores usando correctamente el cinturón?"}]}}},"VCC03":{"desc":"CAIDA O DESPRENDIMIENTO DE ROCAS SOBRE PERSONAS, EQUIPOS EN INTERIOR MINA","controles":{"CCP1":{"tipo":"Preventivo","desc":"Cumplimiento de diseño de excavaciones considerando evaluaciones geomecánicas.","preguntas":[{"id":"P64","texto":"1. ¿Se cumplen los diseños geomecánicos en los frentes de avance y tajos?"}]},"CCP2":{"tipo":"Preventivo","desc":"Control de QA/QC con cada ejecución del sostenimiento.","preguntas":[{"id":"P65","texto":"1. ¿Se ha verificado los certificados de calidad de los materiales de sostenimiento?"},{"id":"P66","texto":"2. ¿Se está ejecutando el control de calidad de sostenimiento de acuerdo a normativa?"}]},"CPM1":{"tipo":"Mitigadores","desc":"Refugios mineros disponibles y operativos a no más de 500m de frentes de trabajo.","preguntas":[{"id":"P87","texto":"1. ¿Se verifica la operatividad del 100% de los refugios mineros a una distancia no mayor de 500m?"},{"id":"P88","texto":"2. ¿Seguimiento al programa de inspección y mantenimiento de los refugios?"}]}}},"VCC04":{"desc":"EXPOSICIÓN DE PERSONAS A AMBIENTES DEFICIENTES DE OXIGENO O CON GASES TOXICOS","controles":{"CCP5":{"tipo":"Preventivo","desc":"Sistemas de ventilación forzada en áreas de exploración y explotación disponibles y operativos.","preguntas":[{"id":"P111","texto":"1. ¿Se verifica la operatividad del Sistema de ventilación forzada en áreas de exploración, explotación, desarrollo y preparación?"},{"id":"P112","texto":"2. ¿Seguimiento al plan de acción de desviaciones?"}]},"CCP6":{"tipo":"Preventivo","desc":"Monitoreo de la concentración de gases antes de iniciar actividades en frentes de trabajo.","preguntas":[{"id":"P113","texto":"1. ¿Se verifica que los trabajadores cuentan con medidores de gases portátiles que miden CO, NO2, CO2 y O2?"},{"id":"P114","texto":"2. ¿Se verifica que se realicen mediciones diarias de gases antes de ingresar a las labores?"}]},"CCM2":{"tipo":"Mitigadores","desc":"Presencia de autorescatadores en áreas con riesgo de incendio.","preguntas":[{"id":"P128","texto":"1. ¿Se verifica la presencia de autorescatadores en el 100% de las áreas con riesgo de incendio?"},{"id":"P129","texto":"2. ¿El personal ha sido entrenado en el uso del autorescatador?"}]}}},"VCC05":{"desc":"PRESENCIA DE PERSONAL EN ÁREA RESTRINGIDA DURANTE LA VOLADURA EN INTERIOR MINA","controles":{"CPP1":{"tipo":"Preventivo","desc":"Reunión de voladura liderado por Jefatura de Sección y entrega del plano de influencia.","preguntas":[{"id":"P136","texto":"1. ¿Se realiza la reunión del protocolo de voladura con la participación del Jefe de Guardia y se documentó?"},{"id":"P137","texto":"2. ¿El personal involucrado recibió el plan de influencia actualizado y comprendió los límites del área restringida?"}]},"CPP4":{"tipo":"Preventivo","desc":"Verificar la presencia de los vigías en los puntos de control designados.","preguntas":[{"id":"P141","texto":"1. ¿Los vigías fueron posicionados en los puntos críticos del plan de voladura?"},{"id":"P142","texto":"2. ¿Se registró correctamente la liberación del área por parte de los vigías antes del disparo?"}]},"CPM1":{"tipo":"Mitigadores","desc":"Operatividad de comunicación radial, alarmas visuales y sonoras para la evacuación.","preguntas":[{"id":"P149","texto":"1. ¿El sistema de comunicación radial y alarmas estuvo funcional durante la evacuación previa a la voladura?"},{"id":"P150","texto":"2. ¿Se cuenta con un sistema de alimentación de respaldo para el sistema de comunicación radial?"}]}}},"VCC06":{"desc":"PÉRDIDA DE CONTROL DE EQUIPOS MINEROS Y AUXILIARES SUBTERRÁNEOS","controles":{"CCP1":{"tipo":"Preventivo","desc":"Verificar certificado de capacitación de los operadores y evaluar competencias en campo.","preguntas":[{"id":"P159","texto":"1. ¿Tienen certificado de capacitación vigente?"},{"id":"P160","texto":"2. ¿Para medir las habilidades de los operadores se utiliza un formato o check list?"}]},"CCP4":{"tipo":"Preventivo","desc":"Verificar el cumplimiento del programa de mantenimiento preventivo de equipos.","preguntas":[{"id":"P165","texto":"1. ¿Existe un programa de mantenimiento preventivo aprobado?"},{"id":"P166","texto":"2. ¿Se tiene talleres implementados para los mantenimientos preventivos?"},{"id":"P167","texto":"3. ¿Se ha cumplido el programa en las fechas programadas?"}]},"CCM1":{"tipo":"Mitigadores","desc":"Verificar el buen estado y uso de cinturón de seguridad de 3 puntos.","preguntas":[{"id":"P177","texto":"1. ¿El cinturón no presenta desgaste, cortes, hilos expuestos o contaminación?"},{"id":"P178","texto":"2. ¿El conductor y ocupantes usan el cinturón de seguridad en todo momento?"}]}}},"VCC07":{"desc":"Liberación descontrolada de energías durante el mantenimiento de equipos críticos","controles":{"CCP1":{"tipo":"Preventivo","desc":"Verificar el AIT y competencias del personal autorizado para el bloqueo de energías peligrosas.","preguntas":[{"id":"P187","texto":"1. ¿Personal solicitante de bloqueo, supervisor, oficial de bloqueo y trabajadores cuentan con AIT para Aislamiento y bloqueo de energías vigente?"}]},"CCP4":{"tipo":"Preventivo","desc":"Bloquear todas las energías identificadas.","preguntas":[{"id":"P193","texto":"1. ¿Es necesario tener conocimiento de la estructura de funcionamiento de los equipos antes de intervenirlos?"},{"id":"P194","texto":"2. ¿Conocen el diagrama Eléctrico?"},{"id":"P195","texto":"3. ¿Conocen el diagrama de flujo de procesos (PFD)?"}]},"CCM1":{"tipo":"Mitigadores","desc":"Desarrollar simulacros para atender accidentes durante el aislamiento de energías.","preguntas":[{"id":"P213","texto":"1. ¿Se ejecutó simulacro relacionado a liberación descontrolada de energía peligrosa según programa?"},{"id":"P214","texto":"2. ¿Se evidencia cumplimiento de cierre de planes de acción identificados en simulacros?"}]}}},"VCC08":{"desc":"PRESENCIA DE PERSONAS EN EXTERIORES EXPUESTOS A TORMENTAS ELÉCTRICAS","controles":{"CCP1":{"tipo":"Preventivo","desc":"Verificar la operatividad de los detectores portátiles de tormenta.","preguntas":[{"id":"P221","texto":"1. ¿Los detectores portátiles de tormentas están operativos y cuentan con certificado de calibración vigente?"},{"id":"P222","texto":"2. ¿El usuario sabe interpretar la lectura de datos del detector de tormentas portátil?"}]},"CCP2":{"tipo":"Preventivo","desc":"Verificar la presencia de refugios temporales para personal que trabaja a la intemperie.","preguntas":[{"id":"P223","texto":"1. ¿Se cuenta con refugios temporales en cantidad suficiente para todo el personal?"},{"id":"P224","texto":"2. ¿Los refugios están accesibles para un desplazamiento seguro?"},{"id":"P225","texto":"3. ¿El personal conoce los requisitos de seguridad que debe cumplir un refugio temporal?"}]},"CPM1":{"tipo":"Mitigadores","desc":"Simulacros para atención médica primaria ante descarga de rayo.","preguntas":[{"id":"P233","texto":"1. ¿La brigada de respuesta a emergencias está entrenada para actuar ante situaciones de descargas por tormentas eléctricas?"},{"id":"P234","texto":"2. ¿Se cuenta con un programa de simulacros que involucre situaciones de emergencia frente a descargas eléctricas?"}]}}},"VCC09":{"desc":"Incendio en instalaciones y equipos en Interior Mina Subterranea","controles":{"CCP4":{"tipo":"Preventivo","desc":"No se utiliza o almacena gasolina y otros líquidos inflamables en interior mina.","preguntas":[{"id":"P245","texto":"1. ¿Se verifica la ausencia de gasolina u otros líquidos inflamables en almacenes, talleres y frentes de trabajo?"},{"id":"P246","texto":"2. ¿En caso de desviaciones, se registran, comunican y toman acciones inmediatas?"}]},"CCP8":{"tipo":"Preventivo","desc":"Personal que trabaja en interior mina conoce y aplica el Procedimiento de Emergencia PAS.","preguntas":[{"id":"P253","texto":"1. ¿El personal tiene claro qué acciones debe seguir en caso de un incendio en interior mina?"},{"id":"P254","texto":"2. ¿Medios de comunicaciones están disponibles y operativos?"},{"id":"P255","texto":"3. ¿El personal sabe adónde y cómo evacuar de interior mina?"}]},"CCM4":{"tipo":"Mitigadores","desc":"Simulacros de incendio y evacuación en interior mina.","preguntas":[{"id":"P264","texto":"1. ¿Se han realizado simulacros de incendio en interior mina?"},{"id":"P265","texto":"2. ¿Se ha identificado oportunidades de mejora?"}]}}},"VCC10":{"desc":"Caída de personal a fuentes de agua (presa de relaves, lagunas)","controles":{"CCP1":{"tipo":"Preventivo","desc":"Presencia de cercos perimétricos o barreras en puntos clave y restricción de acceso.","preguntas":[{"id":"P277","texto":"1. ¿Se tiene identificado/mapeado las fuentes hídricas artificiales y naturales dentro de la UM?"},{"id":"P278","texto":"2. ¿Las fuentes hídricas identificadas cuentan con barreras rígidas de 1.20m mínimo?"},{"id":"P279","texto":"3. ¿Se cuenta con un programa de inspección de los cercos perimétricos de fuentes de agua?"}]},"CCP4":{"tipo":"Preventivo","desc":"Uso obligatorio de chaleco salvavidas y silbato en trabajos cerca o sobre fuente de agua.","preguntas":[{"id":"P288","texto":"1. ¿Se ha determinado qué tareas deben utilizar obligatoriamente el chaleco salvavidas y silbato?"},{"id":"P289","texto":"2. ¿Los chalecos salvavidas están certificados bajo norma ISO 12402 ó ANSI Z359?"}]},"CCM1":{"tipo":"Mitigadores","desc":"Programa de simulacros que incluye escenarios de rescate en fuentes de agua.","preguntas":[{"id":"P291","texto":"1. ¿Se han cumplido los programas de simulacros de caídas sobre fuentes de agua?"},{"id":"P292","texto":"2. ¿Se ha identificado observaciones en los simulacros?"}]}}}};
+
+// PROGRAMACIONES (demo - en producción viene de OneDrive)
+const PROGRAMACIONES = [
+  { id: 'PROG01', email: 'alvaroanticonalizama@gmail.com', vcc: 'VCC01', mes: 5, anio: 2026, estado: 'Pendiente' }
+];
+
+// ─── STATE ──────────────────────────────────────────────────────────────
+let state = {
+  user: null,
+  currentVCC: null,
+  currentControl: null,
+  currentPregunta: null,
+  respuestas: {},
+  screenStack: [],
+  formData: { resultado: null, foto: null, fotoHallazgo: null }
+};
+
+// ─── NAVIGATION ──────────────────────────────────────────────────────────
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0, 0);
+}
+
+function navigate(screenId) {
+  state.screenStack.push(document.querySelector('.screen.active')?.id);
+  showScreen(screenId);
+}
+
+function goBack() {
+  const prev = state.screenStack.pop();
+  if (prev) showScreen(prev);
+  else showScreen('screen-home');
+}
+
+// ─── LOGIN ──────────────────────────────────────────────────────────────
+function doLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const nombre = document.getElementById('login-nombre').value.trim();
+  if (!email || !nombre) { showToast('Completa todos los campos'); return; }
+  if (!email.includes('@')) { showToast('Ingresa un correo válido'); return; }
+  state.user = { email, nombre };
+  localStorage.setItem('vcc_user', JSON.stringify(state.user));
+  renderHome();
+  navigate('screen-home');
+}
+
+// ─── HOME ──────────────────────────────────────────────────────────────
+function renderHome() {
+  const { nombre, email } = state.user;
+  document.getElementById('home-name').textContent = nombre;
+  document.getElementById('home-avatar').textContent = nombre.charAt(0).toUpperCase();
+  document.getElementById('home-subtitle').textContent = email;
+
+  const meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  const now = new Date();
+  document.getElementById('home-mes').textContent = `${meses[now.getMonth()]} ${now.getFullYear()}`;
+
+  // Obtener VCCs asignados al usuario
+  const misProgs = PROGRAMACIONES.filter(p => p.email === email);
+  
+  // Contar respuestas
+  const totalResp = Object.keys(state.respuestas).length;
+  document.getElementById('stat-vccs').textContent = misProgs.length || 1; // demo
+  document.getElementById('stat-respondidas').textContent = totalResp;
+
+  // Render VCC cards (demo: mostrar todos los VCCs si no hay programaciones)
+  const vccsAMostrar = misProgs.length > 0 
+    ? misProgs.map(p => p.vcc) 
+    : Object.keys(VCC_DATA); // demo: mostrar todos
+
+  const list = document.getElementById('vcc-list');
+  list.innerHTML = '';
+  vccsAMostrar.forEach((vccId, idx) => {
+    const vcc = VCC_DATA[vccId];
+    if (!vcc) return;
+    const totalPregs = Object.values(vcc.controles).reduce((s,c) => s + c.preguntas.length, 0);
+    const respVCC = Object.keys(state.respuestas).filter(k => k.startsWith(vccId)).length;
+    const isDone = respVCC >= totalPregs;
+    const card = document.createElement('div');
+    card.className = 'vcc-card';
+    card.style.animationDelay = `${idx * 0.05}s`;
+    card.innerHTML = `
+      <div class="vcc-badge"><span>${vccId}</span></div>
+      <div class="vcc-info">
+        <div class="vcc-code">${vccId}</div>
+        <div class="vcc-desc">${vcc.desc}</div>
+        <div class="vcc-meta">
+          <span class="vcc-status ${isDone ? 'done' : ''}">${isDone ? '✓ Completado' : 'Pendiente'}</span>
+          <span style="font-size:11px;color:var(--gray-400)">${respVCC}/${totalPregs} preguntas</span>
+        </div>
+      </div>
+      <div class="vcc-arrow">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+      </div>`;
+    card.onclick = () => openControles(vccId);
+    list.appendChild(card);
+  });
+}
+
+// ─── CONTROLES ──────────────────────────────────────────────────────────
+function openControles(vccId) {
+  state.currentVCC = vccId;
+  const vcc = VCC_DATA[vccId];
+  document.getElementById('ctrl-vcc-title').textContent = vccId;
+  document.getElementById('ctrl-vcc-sub').textContent = vcc.desc.substring(0, 50) + '...';
+
+  const preventivos = Object.entries(vcc.controles).filter(([,c]) => c.tipo === 'Preventivo');
+  const mitigadores = Object.entries(vcc.controles).filter(([,c]) => c.tipo === 'Mitigadores');
+
+  const content = document.getElementById('controls-content');
+  content.innerHTML = '';
+
+  [
+    { label: 'Preventivos', items: preventivos, cls: 'preventivo', icon: '<svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg>' },
+    { label: 'Mitigadores', items: mitigadores, cls: 'mitigador', icon: '<svg viewBox="0 0 24 24"><path d="M19 11H7.83l4.88-4.88c.39-.39.39-1.03 0-1.42-.39-.39-1.02-.39-1.41 0l-6.59 6.59c-.39.39-.39 1.02 0 1.41l6.59 6.59c.39.39 1.02.39 1.41 0 .39-.39.39-1.02 0-1.41L7.83 13H19c.55 0 1-.45 1-1s-.45-1-1-1z"/></svg>' }
+  ].forEach(grupo => {
+    if (grupo.items.length === 0) return;
+    const section = document.createElement('div');
+    section.className = 'tipo-section';
+    section.innerHTML = `
+      <div class="tipo-header ${grupo.cls}">
+        <div class="tipo-icon">${grupo.icon}</div>
+        <span class="tipo-title">${grupo.label}</span>
+        <span class="tipo-count">${grupo.items.length}</span>
+      </div>`;
+    grupo.items.forEach(([ctrlId, ctrl], idx) => {
+      const totalP = ctrl.preguntas.length;
+      const respP = ctrl.preguntas.filter(p => state.respuestas[`${vccId}_${ctrlId}_${p.id}`]).length;
+      const progClass = respP === 0 ? '' : respP === totalP ? 'done' : 'partial';
+      const card = document.createElement('div');
+      card.className = 'control-card';
+      card.style.animationDelay = `${idx * 0.04}s`;
+      card.innerHTML = `
+        <span class="control-code">${ctrlId}</span>
+        <div class="control-info">
+          <div class="control-desc">${ctrl.desc}</div>
+          <div class="control-pregs">${respP}/${totalP} preguntas respondidas</div>
+        </div>
+        <div class="control-progress ${progClass}">${respP === totalP && totalP > 0 ? '✓' : `${respP}/${totalP}`}</div>`;
+      card.onclick = () => openPreguntas(vccId, ctrlId);
+      section.appendChild(card);
+    });
+    content.appendChild(section);
+  });
+
+  navigate('screen-controles');
+}
+
+// ─── PREGUNTAS ──────────────────────────────────────────────────────────
+function openPreguntas(vccId, ctrlId) {
+  state.currentVCC = vccId;
+  state.currentControl = ctrlId;
+  const ctrl = VCC_DATA[vccId].controles[ctrlId];
+  
+  document.getElementById('preg-ctrl-title').textContent = ctrlId;
+  document.getElementById('preg-ctrl-sub').textContent = ctrl.desc.substring(0, 45) + (ctrl.desc.length > 45 ? '...' : '');
+
+  // Progress bar
+  const total = ctrl.preguntas.length;
+  const respondidas = ctrl.preguntas.filter(p => state.respuestas[`${vccId}_${ctrlId}_${p.id}`]).length;
+  document.getElementById('preg-progress-container').innerHTML = `
+    <div class="progress-info">
+      <span>${respondidas} de ${total} preguntas respondidas</span>
+      <span>${Math.round(respondidas/total*100)}%</span>
+    </div>
+    <div class="progress-track"><div class="progress-fill" style="width:${respondidas/total*100}%"></div></div>`;
+
+  const content = document.getElementById('preguntas-content');
+  content.innerHTML = `
+    <div class="control-info-banner">
+      <span class="code-badge">${ctrlId}</span>
+      <p>${ctrl.desc}</p>
+    </div>`;
+
+  ctrl.preguntas.forEach((p, idx) => {
+    const key = `${vccId}_${ctrlId}_${p.id}`;
+    const resp = state.respuestas[key];
+    const card = document.createElement('div');
+    card.className = `pregunta-card ${resp ? `answered-${resp.resultado.toLowerCase()}` : ''}`;
+    card.style.animationDelay = `${idx * 0.04}s`;
+    card.id = `pcard-${p.id}`;
+    card.innerHTML = `
+      <div class="pregunta-num">Pregunta ${idx + 1} de ${total} · ${p.id}</div>
+      <div class="pregunta-text">${p.texto}</div>
+      <div class="pregunta-estado">
+        <span class="respuesta-badge ${resp ? resp.resultado.toLowerCase() : 'pendiente'}">${resp ? resp.resultado : 'Pendiente'}</span>
+        <span class="tap-to-answer">${resp ? 'Toca para editar' : 'Toca para responder'}</span>
+      </div>`;
+    card.onclick = () => openForm(vccId, ctrlId, p);
+    content.appendChild(card);
+  });
+
+  navigate('screen-preguntas');
+}
+
+// ─── FORM ──────────────────────────────────────────────────────────────
+function openForm(vccId, ctrlId, pregunta) {
+  state.currentVCC = vccId;
+  state.currentControl = ctrlId;
+  state.currentPregunta = pregunta;
+  state.formData = { resultado: null, foto: null, fotoHallazgo: null };
+
+  document.getElementById('form-pregunta-text').textContent = pregunta.texto;
+  document.getElementById('form-subtitle').textContent = `${vccId} · ${ctrlId} · ${pregunta.id}`;
+
+  // Reset form
+  document.getElementById('btn-si').className = 'btn-sn';
+  document.getElementById('btn-no').className = 'btn-sn';
+  document.getElementById('form-comentario').value = '';
+  document.getElementById('form-observacion').value = '';
+  document.getElementById('form-plan').value = '';
+  document.getElementById('foto-preview').style.display = 'none';
+  document.getElementById('foto-hallazgo-preview').style.display = 'none';
+  document.getElementById('hallazgo-section').classList.remove('show');
+
+  // Pre-fill si ya hay respuesta
+  const key = `${vccId}_${ctrlId}_${pregunta.id}`;
+  const existing = state.respuestas[key];
+  if (existing) {
+    selectRespuesta(existing.resultado, true);
+    if (existing.comentario) document.getElementById('form-comentario').value = existing.comentario;
+    if (existing.observacion) document.getElementById('form-observacion').value = existing.observacion;
+    if (existing.plan) document.getElementById('form-plan').value = existing.plan;
+  }
+
+  navigate('screen-form');
+}
+
+function selectRespuesta(valor, silent) {
+  state.formData.resultado = valor;
+  document.getElementById('btn-si').className = `btn-sn ${valor === 'SI' ? 'selected-si' : ''}`;
+  document.getElementById('btn-no').className = `btn-sn ${valor === 'NO' ? 'selected-no' : ''}`;
+  const hallazgo = document.getElementById('hallazgo-section');
+  if (valor === 'NO') hallazgo.classList.add('show');
+  else hallazgo.classList.remove('show');
+}
+
+function handleFoto(input) {
+  if (input.files && input.files[0]) {
+    const reader = new FileReader();
+    reader.onload = e => {
+      state.formData.foto = e.target.result;
+      document.getElementById('foto-preview').src = e.target.result;
+      document.getElementById('foto-preview').style.display = 'block';
+    };
+    reader.readAsDataURL(input.files[0]);
+  }
+}
+
+function handleFotoHallazgo(input) {
+  if (input.files && input.files[0]) {
+    const reader = new FileReader();
+    reader.onload = e => {
+      state.formData.fotoHallazgo = e.target.result;
+      document.getElementById('foto-hallazgo-preview').src = e.target.result;
+      document.getElementById('foto-hallazgo-preview').style.display = 'block';
+    };
+    reader.readAsDataURL(input.files[0]);
+  }
+}
+
+function guardarRespuesta() {
+  if (!state.formData.resultado) { showToast('Selecciona SI o NO'); return; }
+  const key = `${state.currentVCC}_${state.currentControl}_${state.currentPregunta.id}`;
+  state.respuestas[key] = {
+    vcc: state.currentVCC,
+    control: state.currentControl,
+    pregunta: state.currentPregunta.id,
+    preguntaTexto: state.currentPregunta.texto,
+    resultado: state.formData.resultado,
+    comentario: document.getElementById('form-comentario').value,
+    observacion: document.getElementById('form-observacion').value,
+    plan: document.getElementById('form-plan').value,
+    foto: state.formData.foto,
+    fotoHallazgo: state.formData.fotoHallazgo,
+    fecha: new Date().toISOString(),
+    verificador: state.user.nombre,
+    email: state.user.email
+  };
+  localStorage.setItem('vcc_respuestas', JSON.stringify(state.respuestas));
+  showToast('✓ Verificación guardada', 'success');
+  
+  // Actualizar stats
+  document.getElementById('stat-respondidas').textContent = Object.keys(state.respuestas).length;
+  
+  setTimeout(() => {
+    goBack();
+    // Refresh preguntas screen
+    openPreguntas(state.currentVCC, state.currentControl);
+    // Remove last from stack since openPreguntas added
+    state.screenStack.pop();
+  }, 800);
+}
+
+// ─── TOAST ──────────────────────────────────────────────────────────────
+function showToast(msg, type) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = `toast ${type || ''} show`;
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ─── INIT ──────────────────────────────────────────────────────────────
+function init() {
+  // Restore session
+  const savedUser = localStorage.getItem('vcc_user');
+  const savedResp = localStorage.getItem('vcc_respuestas');
+  if (savedResp) state.respuestas = JSON.parse(savedResp);
+  if (savedUser) {
+    state.user = JSON.parse(savedUser);
+    renderHome();
+    showScreen('screen-home');
+  } else {
+    showScreen('screen-login');
+  }
+}
+
+init();
+</script>
+</body>
+</html>
