@@ -596,8 +596,19 @@ if ('serviceWorker' in navigator) {
       <h2>Mis Riesgos</h2>
       <p id="home-subtitle">VCCs asignados</p>
     </div>
-    <div class="header-avatar" id="home-avatar">A</div>
+    <div class="header-avatar" id="home-avatar" onclick="showLogoutMenu()" style="cursor:pointer">A</div>
   </div>
+  <div id="logout-menu" style="display:none;position:fixed;top:60px;right:16px;background:white;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.15);z-index:200;overflow:hidden;">
+    <div style="padding:12px 16px;border-bottom:1px solid #f1f5f9;">
+      <div style="font-size:13px;font-weight:600;color:#1e293b;" id="menu-nombre"></div>
+      <div style="font-size:12px;color:#94a3b8;" id="menu-email"></div>
+    </div>
+    <button onclick="doLogout()" style="width:100%;padding:14px 16px;background:none;border:none;text-align:left;font-size:14px;color:#ef4444;font-weight:600;font-family:'Barlow',sans-serif;cursor:pointer;display:flex;align-items:center;gap:8px;">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      Cerrar sesión
+    </button>
+  </div>
+  <div id="logout-overlay" style="display:none;position:fixed;inset:0;z-index:199;" onclick="hideLogoutMenu()"></div>
   <div class="home-hero">
     <div class="home-greeting">Hola,</div>
     <div class="home-name" id="home-name">Verificador</div>
@@ -776,6 +787,34 @@ function doLogin() {
 }
 
 // ─── HOME ──────────────────────────────────────────────────────────────
+function showLogoutMenu() {
+  const menu = document.getElementById('logout-menu');
+  const overlay = document.getElementById('logout-overlay');
+  document.getElementById('menu-nombre').textContent = state.user.nombre;
+  document.getElementById('menu-email').textContent = state.user.email;
+  menu.style.display = 'block';
+  overlay.style.display = 'block';
+}
+
+function hideLogoutMenu() {
+  document.getElementById('logout-menu').style.display = 'none';
+  document.getElementById('logout-overlay').style.display = 'none';
+}
+
+function doLogout() {
+  hideLogoutMenu();
+  if (confirm('¿Cerrar sesión?')) {
+    localStorage.removeItem('vcc_user');
+    localStorage.removeItem('vcc_respuestas');
+    state.user = null;
+    state.respuestas = {};
+    state.screenStack = [];
+    showScreen('screen-login');
+    document.getElementById('login-email').value = '';
+    document.getElementById('login-nombre').value = '';
+  }
+}
+
 function renderHome() {
   const { nombre, email } = state.user;
   document.getElementById('home-name').textContent = nombre;
