@@ -752,6 +752,7 @@ let state = {
   currentControl: null,
   currentPregunta: null,
   respuestas: {},
+  programaciones: [],
   screenStack: [],
   formData: { resultado: null, foto: null, fotoHallazgo: null }
 };
@@ -825,18 +826,15 @@ function renderHome() {
   const now = new Date();
   document.getElementById('home-mes').textContent = `${meses[now.getMonth()]} ${now.getFullYear()}`;
 
-  // Obtener VCCs asignados al usuario
-  const misProgs = PROGRAMACIONES.filter(p => p.email === email);
-  
+  // Obtener VCCs asignados al usuario desde Sheets o localStorage
+  const vccsAMostrar = state.programaciones.length > 0
+    ? state.programaciones
+    : Object.keys(VCC_DATA); // demo: mostrar todos si no hay programaciones
+
   // Contar respuestas
   const totalResp = Object.keys(state.respuestas).length;
-  document.getElementById('stat-vccs').textContent = misProgs.length || 1; // demo
+  document.getElementById('stat-vccs').textContent = vccsAMostrar.length;
   document.getElementById('stat-respondidas').textContent = totalResp;
-
-  // Render VCC cards (demo: mostrar todos los VCCs si no hay programaciones)
-  const vccsAMostrar = misProgs.length > 0 
-    ? misProgs.map(p => p.vcc) 
-    : Object.keys(VCC_DATA); // demo: mostrar todos
 
   updatePendingBadge();
   const list = document.getElementById('vcc-list');
@@ -1232,12 +1230,15 @@ function init() {
   if (savedResp) {
     try { state.respuestas = JSON.parse(savedResp); } catch(e) {}
   }
+  const savedProgs = localStorage.getItem('vcc_programaciones');
+  if (savedProgs) {
+    try { state.programaciones = JSON.parse(savedProgs); } catch(e) {}
+  }
   if (savedUser) {
     try {
       state.user = JSON.parse(savedUser);
       renderHome();
       showScreen('screen-home');
-      // Cargar respuestas desde Google Sheets en background
       loadResponsesFromSheets();
     } catch(e) {
       showScreen('screen-login');
@@ -1249,7 +1250,6 @@ function init() {
 
 function loadResponsesFromSheets() {
   if (!navigator.onLine) {
-    // Sin señal - usar respuestas locales
     renderHome();
     return;
   }
@@ -1257,8 +1257,13 @@ function loadResponsesFromSheets() {
   fetch(url)
     .then(r => r.json())
     .then(data => {
+      // Cargar programaciones
+      if (data && data.programaciones && data.programaciones.length > 0) {
+        state.programaciones = data.programaciones;
+        localStorage.setItem('vcc_programaciones', JSON.stringify(data.programaciones));
+      }
+      // Cargar respuestas
       if (data && data.respuestas) {
-        // Merge con respuestas locales
         data.respuestas.forEach(r => {
           const key = `${r.vcc}_${r.control}_${r.pregunta_id}`;
           if (!state.respuestas[key]) {
@@ -1277,10 +1282,12 @@ function loadResponsesFromSheets() {
           }
         });
         localStorage.setItem('vcc_respuestas', JSON.stringify(state.respuestas));
-        renderHome();
       }
+      renderHome();
     })
-    .catch(() => {}); // Sin internet - usar caché local
+    .catch(() => {
+      renderHome();
+    });
 }
 
 init();
