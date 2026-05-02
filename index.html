@@ -1016,7 +1016,9 @@ function guardarRespuesta() {
     comentario: document.getElementById('form-comentario').value || '',
     observacion: document.getElementById('form-observacion').value || '',
     plan: document.getElementById('form-plan').value || '',
-    estado: 'Guardado'
+    estado: 'Guardado',
+    foto: state.formData.foto || '',
+    fotoHallazgo: state.formData.fotoHallazgo || ''
   };
 
   // Sincronizar a Google Sheets
@@ -1033,20 +1035,35 @@ function guardarRespuesta() {
 }
 
 function syncToSheets(payload) {
-  const form = document.createElement('form');
-  form.method = 'POST';
-  form.action = SHEETS_URL;
-  form.target = 'hidden_iframe';
-  form.style.display = 'none';
-  const input = document.createElement('input');
-  input.type = 'hidden';
-  input.name = 'payload';
-  input.value = JSON.stringify(payload);
-  form.appendChild(input);
-  document.body.appendChild(form);
-  form.submit();
-  document.body.removeChild(form);
-  showToast('✓ Guardado y sincronizado', 'success');
+  // Use fetch with no-cors for large payloads (fotos)
+  fetch(SHEETS_URL, {
+    method: 'POST',
+    mode: 'no-cors',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(payload)
+  }).then(() => {
+    showToast('✓ Guardado y sincronizado', 'success');
+  }).catch(() => {
+    // Fallback: form submission sin foto
+    const payloadSinFoto = {...payload, foto: '', fotoHallazgo: ''};
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = SHEETS_URL;
+    form.target = 'hidden_iframe';
+    form.style.display = 'none';
+    const input = document.createElement('input');
+    input.type = 'hidden';
+    input.name = 'payload';
+    input.value = JSON.stringify(payloadSinFoto);
+    form.appendChild(input);
+    document.body.appendChild(form);
+    form.submit();
+    document.body.removeChild(form);
+    showToast('✓ Guardado localmente', 'success');
+    const pending = JSON.parse(localStorage.getItem('vcc_pending') || '[]');
+    pending.push(payload);
+    localStorage.setItem('vcc_pending', JSON.stringify(pending));
+  });
 }
 
 function syncPending() {
