@@ -1249,45 +1249,47 @@ function init() {
 }
 
 function loadResponsesFromSheets() {
-  if (!navigator.onLine) {
-    renderHome();
-    return;
-  }
+  if (!navigator.onLine) return;
+  
+  // PASO 1: Cargar solo programaciones (rápido)
+  const urlProgs = SHEETS_URL + '?action=getProgramaciones&email=' + encodeURIComponent(state.user.email);
+  fetch(urlProgs)
+    .then(r => r.json())
+    .then(data => {
+      if (data && data.programaciones && data.programaciones.length > 0) {
+        state.programaciones = data.programaciones;
+        localStorage.setItem('vcc_programaciones', JSON.stringify(data.programaciones));
+        renderHome();
+      }
+      // PASO 2: Cargar respuestas en background (puede ser lento)
+      loadRespuestasBackground();
+    })
+    .catch(() => {});
+}
+
+function loadRespuestasBackground() {
+  if (!navigator.onLine) return;
   const url = SHEETS_URL + '?action=getResponses&email=' + encodeURIComponent(state.user.email);
   fetch(url)
     .then(r => r.json())
     .then(data => {
-      // Cargar programaciones
-      if (data && data.programaciones && data.programaciones.length > 0) {
-        state.programaciones = data.programaciones;
-        localStorage.setItem('vcc_programaciones', JSON.stringify(data.programaciones));
-      }
-      // Cargar respuestas
       if (data && data.respuestas) {
         data.respuestas.forEach(r => {
           const key = `${r.vcc}_${r.control}_${r.pregunta_id}`;
           if (!state.respuestas[key]) {
             state.respuestas[key] = {
-              vcc: r.vcc,
-              control: r.control,
-              pregunta: r.pregunta_id,
-              resultado: r.resultado,
-              comentario: r.comentario,
-              observacion: r.observacion,
-              plan: r.plan,
-              fecha: r.fecha,
-              verificador: r.verificador,
-              email: r.email
+              vcc: r.vcc, control: r.control, pregunta: r.pregunta_id,
+              resultado: r.resultado, comentario: r.comentario,
+              observacion: r.observacion, plan: r.plan,
+              fecha: r.fecha, verificador: r.verificador, email: r.email
             };
           }
         });
         localStorage.setItem('vcc_respuestas', JSON.stringify(state.respuestas));
+        renderHome();
       }
-      renderHome();
     })
-    .catch(() => {
-      renderHome();
-    });
+    .catch(() => {});
 }
 
 init();
