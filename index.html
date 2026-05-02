@@ -722,6 +722,8 @@ const PROGRAMACIONES = [
   { id: 'PROG01', email: 'alvaroanticonalizama@gmail.com', vcc: 'VCC01', mes: 5, anio: 2026, estado: 'Pendiente' }
 ];
 
+const SHEETS_URL = "https://script.google.com/macros/s/AKfycbw27LKZmY-by0IZeXc29A2Lk6MTg08TwdPGwS6rCK_-wKyJyMbswdu1Vty4FjfPOMul/exec";
+
 // ─── STATE ──────────────────────────────────────────────────────────────
 let state = {
   user: null,
@@ -980,8 +982,9 @@ function handleFotoHallazgo(input) {
 
 function guardarRespuesta() {
   if (!state.formData.resultado) { showToast('Selecciona SI o NO'); return; }
+  
   const key = `${state.currentVCC}_${state.currentControl}_${state.currentPregunta.id}`;
-  state.respuestas[key] = {
+  const registro = {
     vcc: state.currentVCC,
     control: state.currentControl,
     pregunta: state.currentPregunta.id,
@@ -996,20 +999,73 @@ function guardarRespuesta() {
     verificador: state.user.nombre,
     email: state.user.email
   };
+
+  state.respuestas[key] = registro;
   localStorage.setItem('vcc_respuestas', JSON.stringify(state.respuestas));
-  showToast('✓ Verificación guardada', 'success');
-  
+
+  // Guardar en Google Sheets
+  const payload = {
+    fecha: new Date().toLocaleString('es-PE'),
+    email: state.user.email,
+    verificador: state.user.nombre,
+    vcc: state.currentVCC,
+    control: state.currentControl,
+    pregunta_id: state.currentPregunta.id,
+    pregunta: state.currentPregunta.texto,
+    resultado: state.formData.resultado,
+    comentario: document.getElementById('form-comentario').value || '',
+    observacion: document.getElementById('form-observacion').value || '',
+    plan: document.getElementById('form-plan').value || '',
+    estado: 'Guardado'
+  };
+
+  // Intentar sincronizar (si hay internet)
+  fetch(SHEETS_URL, {
+    method: 'POST',
+    mode: 'no-cors',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  }).then(() => {
+    showToast('✓ Guardado y sincronizado', 'success');
+  }).catch(() => {
+    // Sin internet - guardado local, se sincronizará después
+    showToast('✓ Guardado localmente', 'success');
+    // Agregar a cola de sincronización pendiente
+    const pending = JSON.parse(localStorage.getItem('vcc_pending') || '[]');
+    pending.push(payload);
+    localStorage.setItem('vcc_pending', JSON.stringify(pending));
+  });
+
   // Actualizar stats
   document.getElementById('stat-respondidas').textContent = Object.keys(state.respuestas).length;
-  
+
   setTimeout(() => {
     goBack();
-    // Refresh preguntas screen
     openPreguntas(state.currentVCC, state.currentControl);
-    // Remove last from stack since openPreguntas added
     state.screenStack.pop();
   }, 800);
 }
+
+// Sincronizar registros pendientes cuando hay internet
+function syncPending() {
+  const pending = JSON.parse(localStorage.getItem('vcc_pending') || '[]');
+  if (pending.length === 0) return;
+  const item = pending[0];
+  fetch(SHEETS_URL, {
+    method: 'POST',
+    mode: 'no-cors',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(item)
+  }).then(() => {
+    pending.shift();
+    localStorage.setItem('vcc_pending', JSON.stringify(pending));
+    if (pending.length > 0) syncPending();
+    else showToast(`✓ ${pending.length + 1} registro(s) sincronizados`, 'success');
+  }).catch(() => {});
+}
+
+// Intentar sincronizar al recuperar conexión
+window.addEventListener('online', syncPending);
 
 // ─── TOAST ──────────────────────────────────────────────────────────────
 function showToast(msg, type) {
