@@ -8,6 +8,15 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>VCC - Controles Críticos</title>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/vcc-app/sw.js')
+      .then(() => console.log('SW registered'))
+      .catch(e => console.log('SW error:', e));
+  });
+}
+</script>
 <style>
   :root {
     --navy: #1a2744;
@@ -1056,8 +1065,9 @@ function guardarRespuesta() {
   // Sincronizar a Google Sheets
   syncToSheets(payload);
 
-  // Actualizar stats
+  // Actualizar stats siempre, con o sin internet
   document.getElementById('stat-respondidas').textContent = Object.keys(state.respuestas).length;
+  showToast('✓ Respuesta guardada', 'success');
 
   const vccId = state.currentVCC;
   const ctrlId = state.currentControl;
@@ -1096,9 +1106,8 @@ function guardarRespuesta() {
 
 function syncToSheets(payload, isPending) {
   if (!navigator.onLine) {
-    // Sin señal — guardar en cola
     saveToPendingQueue(payload);
-    if (!isPending) showToast('📵 Sin señal — se sincronizará al salir de mina', '');
+    if (!isPending) showToast('💾 Guardado — se sincronizará con señal', '');
     return;
   }
   fetch(SHEETS_URL, {
@@ -1200,7 +1209,11 @@ function init() {
 }
 
 function loadResponsesFromSheets() {
-  if (!navigator.onLine) return;
+  if (!navigator.onLine) {
+    // Sin señal - usar respuestas locales
+    renderHome();
+    return;
+  }
   const url = SHEETS_URL + '?action=getResponses&email=' + encodeURIComponent(state.user.email);
   fetch(url)
     .then(r => r.json())
