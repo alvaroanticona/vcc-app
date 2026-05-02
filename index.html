@@ -951,6 +951,8 @@ function selectRespuesta(valor, silent) {
   state.formData.resultado = valor;
   document.getElementById('btn-si').className = `btn-sn ${valor === 'SI' ? 'selected-si' : ''}`;
   document.getElementById('btn-no').className = `btn-sn ${valor === 'NO' ? 'selected-no' : ''}`;
+  document.getElementById('btn-si').dataset.selected = valor === 'SI' ? 'true' : '';
+  document.getElementById('btn-no').dataset.selected = valor === 'NO' ? 'true' : '';
   const hallazgo = document.getElementById('hallazgo-section');
   if (valor === 'NO') hallazgo.classList.add('show');
   else hallazgo.classList.remove('show');
@@ -981,7 +983,13 @@ function handleFotoHallazgo(input) {
 }
 
 function guardarRespuesta() {
+  // Read resultado from DOM as fallback
+  if (!state.formData.resultado) {
+    if (document.getElementById('btn-si').dataset.selected === 'true') state.formData.resultado = 'SI';
+    else if (document.getElementById('btn-no').dataset.selected === 'true') state.formData.resultado = 'NO';
+  }
   if (!state.formData.resultado) { showToast('Selecciona SI o NO'); return; }
+  if (!state.currentPregunta) { showToast('Error: recarga la app'); return; }
   
   const key = `${state.currentVCC}_${state.currentControl}_${state.currentPregunta.id}`;
   const registro = {
