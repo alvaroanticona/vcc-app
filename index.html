@@ -592,7 +592,8 @@
   <div class="home-hero">
     <div class="home-greeting">Hola,</div>
     <div class="home-name" id="home-name">Verificador</div>
-    <div class="home-stats">
+    <div id="pending-badge" style="display:none;background:#f59e0b;color:white;font-size:12px;font-weight:600;padding:6px 12px;border-radius:20px;margin-bottom:12px;text-align:center;"></div>
+  <div class="home-stats">
       <div class="stat-card">
         <div class="stat-num" id="stat-vccs">0</div>
         <div class="stat-label">VCCs asignados</div>
@@ -789,6 +790,7 @@ function renderHome() {
     ? misProgs.map(p => p.vcc) 
     : Object.keys(VCC_DATA); // demo: mostrar todos
 
+  updatePendingBadge();
   const list = document.getElementById('vcc-list');
   list.innerHTML = '';
   vccsAMostrar.forEach((vccId, idx) => {
@@ -1092,46 +1094,80 @@ function guardarRespuesta() {
   }, 800);
 }
 
-function syncToSheets(payload) {
-  // Use fetch with no-cors for large payloads (fotos)
+function syncToSheets(payload, isPending) {
+  if (!navigator.onLine) {
+    // Sin señal — guardar en cola
+    saveToPendingQueue(payload);
+    if (!isPending) showToast('📵 Sin señal — se sincronizará al salir de mina', '');
+    return;
+  }
   fetch(SHEETS_URL, {
     method: 'POST',
     mode: 'no-cors',
     headers: {'Content-Type': 'application/json'},
     body: JSON.stringify(payload)
   }).then(() => {
-    showToast('✓ Guardado y sincronizado', 'success');
+    if (!isPending) showToast('✓ Guardado y sincronizado', 'success');
   }).catch(() => {
-    // Fallback: form submission sin foto
-    const payloadSinFoto = {...payload, foto: '', fotoHallazgo: ''};
-    const form = document.createElement('form');
-    form.method = 'POST';
-    form.action = SHEETS_URL;
-    form.target = 'hidden_iframe';
-    form.style.display = 'none';
-    const input = document.createElement('input');
-    input.type = 'hidden';
-    input.name = 'payload';
-    input.value = JSON.stringify(payloadSinFoto);
-    form.appendChild(input);
-    document.body.appendChild(form);
-    form.submit();
-    document.body.removeChild(form);
-    showToast('✓ Guardado localmente', 'success');
+    saveToPendingQueue(payload);
+    if (!isPending) showToast('📵 Sin señal — se sincronizará al salir de mina', '');
+  });
+}
+
+function saveToPendingQueue(payload) {
+  try {
     const pending = JSON.parse(localStorage.getItem('vcc_pending') || '[]');
     pending.push(payload);
     localStorage.setItem('vcc_pending', JSON.stringify(pending));
-  });
+    updatePendingBadge();
+  } catch(e) {
+    // Si localStorage está lleno, guardar sin fotos
+    try {
+      const payloadSinFoto = {...payload, foto: '', fotoHallazgo: ''};
+      const pending = JSON.parse(localStorage.getItem('vcc_pending') || '[]');
+      pending.push(payloadSinFoto);
+      localStorage.setItem('vcc_pending', JSON.stringify(pending));
+    } catch(e2) {}
+  }
 }
 
 function syncPending() {
   const pending = JSON.parse(localStorage.getItem('vcc_pending') || '[]');
   if (pending.length === 0) return;
-  pending.forEach(item => syncToSheets(item));
-  localStorage.removeItem('vcc_pending');
+  showToast(`🔄 Sincronizando ${pending.length} registro(s)...`, '');
+  let synced = 0;
+  pending.forEach((item, idx) => {
+    setTimeout(() => {
+      fetch(SHEETS_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(item)
+      }).then(() => {
+        synced++;
+        if (synced === pending.length) {
+          localStorage.removeItem('vcc_pending');
+          updatePendingBadge();
+          showToast(`✓ ${synced} registro(s) sincronizados`, 'success');
+        }
+      }).catch(() => {});
+    }, idx * 500); // Escalonar requests
+  });
 }
 
-window.addEventListener('online', syncPending);
+function updatePendingBadge() {
+  const pending = JSON.parse(localStorage.getItem('vcc_pending') || '[]');
+  const badge = document.getElementById('pending-badge');
+  if (badge) {
+    badge.textContent = pending.length > 0 ? `${pending.length} pendiente(s)` : '';
+    badge.style.display = pending.length > 0 ? 'block' : 'none';
+  }
+}
+
+window.addEventListener('online', () => {
+  showToast('📶 Señal recuperada — sincronizando...', '');
+  setTimeout(syncPending, 1000);
+});
 
 // ─── TOAST ──────────────────────────────────────────────────────────────
 function showToast(msg, type) {
