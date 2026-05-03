@@ -596,7 +596,8 @@ if ('serviceWorker' in navigator) {
       <h2>Mis Riesgos</h2>
       <p id="home-subtitle">VCCs asignados</p>
     </div>
-    <div class="header-avatar" id="home-avatar" onclick="showLogoutMenu()" style="cursor:pointer">A</div>
+    <button onclick="openProgreso()" style="background:rgba(255,255,255,0.1);border:none;border-radius:10px;color:white;padding:8px 12px;font-size:12px;font-weight:600;font-family:'Barlow',sans-serif;cursor:pointer;">📊 Progreso</button>
+  <div class="header-avatar" id="home-avatar" onclick="showLogoutMenu()" style="cursor:pointer">A</div>
   </div>
   <div id="logout-menu" style="display:none;position:fixed;top:60px;right:16px;background:white;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.15);z-index:200;overflow:hidden;">
     <div style="padding:12px 16px;border-bottom:1px solid #f1f5f9;">
@@ -658,6 +659,45 @@ if ('serviceWorker' in navigator) {
   </div>
   <div class="progress-bar-container" id="preg-progress-container"></div>
   <div class="preguntas-content" id="preguntas-content"></div>
+</div>
+
+<!-- SCREEN: MI PROGRESO -->
+<div id="screen-progreso" class="screen">
+  <div class="app-header">
+    <button class="btn-back" onclick="goBack()">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <div class="header-title">
+      <h2>Mi Progreso</h2>
+      <p id="progreso-mes">Mayo 2026</p>
+    </div>
+  </div>
+  <div style="padding:16px;overflow-y:auto;flex:1;">
+    <!-- Resumen general -->
+    <div style="background:linear-gradient(135deg,var(--navy),var(--navy-light));border-radius:var(--radius);padding:20px;margin-bottom:16px;">
+      <div style="color:rgba(255,255,255,0.6);font-size:13px;margin-bottom:4px;">Progreso general del mes</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-top:12px;">
+        <div style="background:rgba(255,255,255,0.08);border-radius:10px;padding:12px;text-align:center;">
+          <div id="prog-total-resp" style="color:white;font-size:28px;font-weight:800;font-family:'Barlow Condensed',sans-serif;">0</div>
+          <div style="color:rgba(255,255,255,0.5);font-size:11px;">Respondidas</div>
+        </div>
+        <div style="background:rgba(255,255,255,0.08);border-radius:10px;padding:12px;text-align:center;">
+          <div id="prog-total-si" style="color:#10b981;font-size:28px;font-weight:800;font-family:'Barlow Condensed',sans-serif;">0</div>
+          <div style="color:rgba(255,255,255,0.5);font-size:11px;">Conformes</div>
+        </div>
+        <div style="background:rgba(255,255,255,0.08);border-radius:10px;padding:12px;text-align:center;">
+          <div id="prog-total-no" style="color:#ef4444;font-size:28px;font-weight:800;font-family:'Barlow Condensed',sans-serif;">0</div>
+          <div style="color:rgba(255,255,255,0.5);font-size:11px;">Hallazgos</div>
+        </div>
+      </div>
+    </div>
+    <!-- Por VCC -->
+    <div style="font-size:16px;font-weight:700;color:var(--gray-800);margin-bottom:12px;">Por Riesgo</div>
+    <div id="progreso-vccs"></div>
+    <!-- Hallazgos -->
+    <div style="font-size:16px;font-weight:700;color:var(--gray-800);margin:16px 0 12px;">Hallazgos detectados</div>
+    <div id="progreso-hallazgos"></div>
+  </div>
 </div>
 
 <!-- SCREEN: FORM -->
@@ -788,6 +828,76 @@ function doLogin() {
 }
 
 // ─── HOME ──────────────────────────────────────────────────────────────
+function openProgreso() {
+  const meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  const now = new Date();
+  document.getElementById('progreso-mes').textContent = `${meses[now.getMonth()]} ${now.getFullYear()}`;
+
+  const vccsAMostrar = state.programaciones.length > 0
+    ? state.programaciones
+    : Object.keys(VCC_DATA);
+
+  // Stats generales
+  let totalResp = 0, totalSi = 0, totalNo = 0;
+  Object.values(state.respuestas).forEach(r => {
+    totalResp++;
+    if (r.resultado === 'SI') totalSi++;
+    if (r.resultado === 'NO') totalNo++;
+  });
+  document.getElementById('prog-total-resp').textContent = totalResp;
+  document.getElementById('prog-total-si').textContent = totalSi;
+  document.getElementById('prog-total-no').textContent = totalNo;
+
+  // Por VCC
+  const vccsDiv = document.getElementById('progreso-vccs');
+  vccsDiv.innerHTML = '';
+  vccsAMostrar.forEach(vccId => {
+    const vcc = VCC_DATA[vccId];
+    if (!vcc) return;
+    const totalPregs = Object.values(vcc.controles).reduce((s,c) => s + c.preguntas.length, 0);
+    const respVCC = Object.keys(state.respuestas).filter(k => k.startsWith(vccId)).length;
+    const pct = totalPregs > 0 ? Math.round(respVCC/totalPregs*100) : 0;
+    const color = pct === 100 ? '#10b981' : pct > 50 ? '#f59e0b' : '#ef4444';
+    vccsDiv.innerHTML += `
+      <div style="background:white;border-radius:12px;padding:16px;margin-bottom:10px;box-shadow:0 2px 8px rgba(0,0,0,0.06);">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+          <div>
+            <span style="font-size:12px;font-weight:700;color:var(--blue)">${vccId}</span>
+            <div style="font-size:13px;font-weight:500;color:var(--gray-800);margin-top:2px;">${vcc.desc.substring(0,50)}...</div>
+          </div>
+          <span style="font-size:20px;font-weight:800;font-family:'Barlow Condensed',sans-serif;color:${color}">${pct}%</span>
+        </div>
+        <div style="height:8px;background:#f1f5f9;border-radius:20px;overflow:hidden;">
+          <div style="height:100%;width:${pct}%;background:${color};border-radius:20px;transition:width 0.5s ease;"></div>
+        </div>
+        <div style="font-size:12px;color:var(--gray-400);margin-top:6px;">${respVCC} de ${totalPregs} preguntas respondidas</div>
+      </div>`;
+  });
+
+  // Hallazgos
+  const hallazgosDiv = document.getElementById('progreso-hallazgos');
+  hallazgosDiv.innerHTML = '';
+  const hallazgos = Object.values(state.respuestas).filter(r => r.resultado === 'NO');
+  if (hallazgos.length === 0) {
+    hallazgosDiv.innerHTML = '<div style="text-align:center;padding:20px;color:#94a3b8;font-size:14px;">✅ Sin hallazgos detectados</div>';
+  } else {
+    hallazgos.forEach(h => {
+      hallazgosDiv.innerHTML += `
+        <div style="background:white;border-radius:12px;padding:14px;margin-bottom:10px;border-left:4px solid #ef4444;box-shadow:0 2px 8px rgba(0,0,0,0.06);">
+          <div style="display:flex;gap:8px;margin-bottom:6px;">
+            <span style="background:var(--navy);color:white;font-size:11px;font-weight:700;padding:3px 8px;border-radius:6px;">${h.vcc}</span>
+            <span style="background:#fee2e2;color:#dc2626;font-size:11px;font-weight:700;padding:3px 8px;border-radius:6px;">NO</span>
+          </div>
+          <div style="font-size:13px;color:var(--gray-800);margin-bottom:6px;">${h.preguntaTexto || h.pregunta}</div>
+          ${h.observacion ? `<div style="font-size:12px;color:#92400e;background:#fef3c7;padding:8px;border-radius:8px;margin-top:6px;">📋 ${h.observacion}</div>` : ''}
+          ${h.plan ? `<div style="font-size:12px;color:#065f46;background:#d1fae5;padding:8px;border-radius:8px;margin-top:6px;">✅ ${h.plan}</div>` : ''}
+        </div>`;
+    });
+  }
+
+  navigate('screen-progreso');
+}
+
 function showLogoutMenu() {
   const menu = document.getElementById('logout-menu');
   const overlay = document.getElementById('logout-overlay');
@@ -1237,9 +1347,11 @@ function init() {
   if (savedUser) {
     try {
       state.user = JSON.parse(savedUser);
+      // Mostrar home INMEDIATAMENTE con datos del caché
       renderHome();
       showScreen('screen-home');
-      loadResponsesFromSheets();
+      // Sincronizar con Sheets en segundo plano sin bloquear
+      setTimeout(() => loadResponsesFromSheets(), 100);
     } catch(e) {
       showScreen('screen-login');
     }
@@ -1249,47 +1361,44 @@ function init() {
 }
 
 function loadResponsesFromSheets() {
-  if (!navigator.onLine) return;
-  
-  // PASO 1: Cargar solo programaciones (rápido)
-  const urlProgs = SHEETS_URL + '?action=getProgramaciones&email=' + encodeURIComponent(state.user.email);
-  fetch(urlProgs)
-    .then(r => r.json())
-    .then(data => {
-      if (data && data.programaciones && data.programaciones.length > 0) {
-        state.programaciones = data.programaciones;
-        localStorage.setItem('vcc_programaciones', JSON.stringify(data.programaciones));
-        renderHome();
-      }
-      // PASO 2: Cargar respuestas en background (puede ser lento)
-      loadRespuestasBackground();
-    })
-    .catch(() => {});
-}
-
-function loadRespuestasBackground() {
-  if (!navigator.onLine) return;
+  if (!navigator.onLine) {
+    renderHome();
+    return;
+  }
   const url = SHEETS_URL + '?action=getResponses&email=' + encodeURIComponent(state.user.email);
   fetch(url)
     .then(r => r.json())
     .then(data => {
+      // Cargar programaciones
+      if (data && data.programaciones && data.programaciones.length > 0) {
+        state.programaciones = data.programaciones;
+        localStorage.setItem('vcc_programaciones', JSON.stringify(data.programaciones));
+      }
+      // Cargar respuestas
       if (data && data.respuestas) {
         data.respuestas.forEach(r => {
           const key = `${r.vcc}_${r.control}_${r.pregunta_id}`;
           if (!state.respuestas[key]) {
             state.respuestas[key] = {
-              vcc: r.vcc, control: r.control, pregunta: r.pregunta_id,
-              resultado: r.resultado, comentario: r.comentario,
-              observacion: r.observacion, plan: r.plan,
-              fecha: r.fecha, verificador: r.verificador, email: r.email
+              vcc: r.vcc,
+              control: r.control,
+              pregunta: r.pregunta_id,
+              resultado: r.resultado,
+              comentario: r.comentario,
+              observacion: r.observacion,
+              plan: r.plan,
+              fecha: r.fecha,
+              verificador: r.verificador,
+              email: r.email
             };
           }
         });
         localStorage.setItem('vcc_respuestas', JSON.stringify(state.respuestas));
-        renderHome();
       }
+      // Actualizar silenciosamente sin mostrar loading
+      renderHome();
     })
-    .catch(() => {});
+    .catch(() => {}); // Fallo silencioso - ya se mostró caché
 }
 
 init();
