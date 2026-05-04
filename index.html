@@ -658,6 +658,12 @@ if ('serviceWorker' in navigator) {
     </div>
   </div>
   <div class="progress-bar-container" id="preg-progress-container"></div>
+  <div id="preg-pdf-btn-container" style="padding:0 16px 8px;display:none;">
+    <button onclick="abrirFormularioPDF()" style="width:100%;padding:12px;background:linear-gradient(135deg,#1a2744,#2563eb);color:white;border:none;border-radius:10px;font-size:14px;font-weight:600;font-family:'Barlow',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      Generar PDF de verificación
+    </button>
+  </div>
   <div class="preguntas-content" id="preguntas-content"></div>
 </div>
 
@@ -792,7 +798,7 @@ let state = {
   currentControl: null,
   currentPregunta: null,
   respuestas: {},
-  programaciones: [],
+  programaciones: [], // [{vcc, control}]
   screenStack: [],
   formData: { resultado: null, foto: null, fotoHallazgo: null }
 };
@@ -936,10 +942,17 @@ function renderHome() {
   const now = new Date();
   document.getElementById('home-mes').textContent = `${meses[now.getMonth()]} ${now.getFullYear()}`;
 
-  // Obtener VCCs asignados al usuario desde Sheets o localStorage
-  const vccsAMostrar = state.programaciones.length > 0
-    ? state.programaciones
-    : Object.keys(VCC_DATA); // demo: mostrar todos si no hay programaciones
+  // Obtener VCCs únicos asignados al usuario
+  let vccsAMostrar;
+  if (state.programaciones.length > 0) {
+    // Extraer VCCs únicos de las programaciones
+    const vccsUnicos = [...new Set(state.programaciones.map(p => 
+      typeof p === 'object' ? p.vcc : p
+    ))];
+    vccsAMostrar = vccsUnicos;
+  } else {
+    vccsAMostrar = Object.keys(VCC_DATA);
+  }
 
   // Contar respuestas
   const totalResp = Object.keys(state.respuestas).length;
@@ -983,8 +996,21 @@ function openControles(vccId) {
   document.getElementById('ctrl-vcc-title').textContent = vccId;
   document.getElementById('ctrl-vcc-sub').textContent = vcc.desc.substring(0, 50) + '...';
 
-  const preventivos = Object.entries(vcc.controles).filter(([,c]) => c.tipo === 'Preventivo');
-  const mitigadores = Object.entries(vcc.controles).filter(([,c]) => c.tipo === 'Mitigadores');
+  // Filtrar solo controles asignados en programaciones
+  let controlesAsignados = null;
+  if (state.programaciones.length > 0 && typeof state.programaciones[0] === 'object') {
+    controlesAsignados = state.programaciones
+      .filter(p => p.vcc === vccId)
+      .map(p => p.control);
+  }
+
+  const allControles = Object.entries(vcc.controles);
+  const filteredControles = controlesAsignados 
+    ? allControles.filter(([ctrlId]) => controlesAsignados.includes(ctrlId))
+    : allControles;
+
+  const preventivos = filteredControles.filter(([,c]) => c.tipo === 'Preventivo');
+  const mitigadores = filteredControles.filter(([,c]) => c.tipo === 'Mitigadores');
 
   const content = document.getElementById('controls-content');
   content.innerHTML = '';
@@ -1165,6 +1191,18 @@ function guardarRespuesta() {
   if (!state.formData.resultado) { showToast('Selecciona SI o NO'); return; }
   if (!state.currentPregunta) { showToast('Error: recarga la app'); return; }
   
+  // SI requiere foto y comentario obligatorio
+  if (state.formData.resultado === 'SI') {
+    if (!state.formData.foto) { showToast('📸 Adjunta una foto de evidencia'); return; }
+    if (!document.getElementById('form-comentario').value.trim()) { showToast('💬 Agrega un comentario de evidencia'); return; }
+  }
+  
+  // NO requiere observacion y plan de accion
+  if (state.formData.resultado === 'NO') {
+    if (!document.getElementById('form-observacion').value.trim()) { showToast('📋 Describe el hallazgo encontrado'); return; }
+    if (!document.getElementById('form-plan').value.trim()) { showToast('✅ Agrega un plan de acción'); return; }
+  }
+  
   const key = `${state.currentVCC}_${state.currentControl}_${state.currentPregunta.id}`;
   const registro = {
     vcc: state.currentVCC,
@@ -1235,6 +1273,10 @@ function guardarRespuesta() {
         <span>${Math.round(respondidas/total*100)}%</span>
       </div>
       <div class="progress-track"><div class="progress-fill" style="width:${respondidas/total*100}%"></div></div>`;
+    
+    // Mostrar botón PDF cuando todas las preguntas están respondidas
+    const pdfBtn = document.getElementById('preg-pdf-btn-container');
+    if (pdfBtn) pdfBtn.style.display = respondidas === total && total > 0 ? 'block' : 'none';
 
     // Update each pregunta card
     ctrl.preguntas.forEach((p, idx) => {
@@ -1404,5 +1446,65 @@ function loadResponsesFromSheets() {
 init();
 </script>
 <iframe name="hidden_iframe" style="display:none"></iframe>
+
+<!-- PDF MODAL -->
+<div id="pdf-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:500;align-items:flex-end;justify-content:center;">
+  <div style="background:white;border-radius:20px 20px 0 0;padding:24px;width:100%;max-width:430px;max-height:90vh;overflow-y:auto;">
+    <h3 style="font-size:16px;font-weight:700;color:#1e293b;margin:0 0 4px;">Generar PDF de verificación</h3>
+    <p style="font-size:13px;color:#64748b;margin:0 0 20px;">Completa los datos antes de generar</p>
+    
+    <div style="margin-bottom:14px;">
+      <label style="font-size:12px;font-weight:600;color:#475569;display:block;margin-bottom:6px;">Actividad verificada</label>
+      <input id="pdf-actividad" type="text" placeholder="Ej: Cambio de barra de perforación" style="width:100%;padding:12px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:14px;font-family:Barlow,sans-serif;color:#1e293b;">
+    </div>
+    
+    <div style="margin-bottom:20px;">
+      <label style="font-size:12px;font-weight:600;color:#475569;display:block;margin-bottom:6px;">Lugar de verificación</label>
+      <input id="pdf-lugar" type="text" placeholder="Ej: Nivel 4350 - Tajeo 12" style="width:100%;padding:12px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:14px;font-family:Barlow,sans-serif;color:#1e293b;">
+    </div>
+
+    <div style="margin-bottom:20px;">
+      <label style="font-size:12px;font-weight:600;color:#475569;display:block;margin-bottom:6px;">Firma del verificador</label>
+      <canvas id="firma-canvas" width="380" height="120" style="width:100%;border:1.5px solid #e2e8f0;border-radius:10px;touch-action:none;cursor:crosshair;"></canvas>
+      <button onclick="limpiarFirma()" style="font-size:12px;color:#64748b;background:none;border:none;padding:6px 0;cursor:pointer;font-family:Barlow,sans-serif;">Limpiar firma</button>
+    </div>
+
+    <button onclick="generarPDF()" style="width:100%;padding:16px;background:linear-gradient(135deg,#1a2744,#2563eb);color:white;border:none;border-radius:10px;font-size:16px;font-weight:700;font-family:Barlow,sans-serif;cursor:pointer;margin-bottom:10px;">Generar PDF</button>
+    <button onclick="cerrarModalPDF()" style="width:100%;padding:12px;background:none;border:1.5px solid #e2e8f0;border-radius:10px;font-size:14px;font-weight:600;font-family:Barlow,sans-serif;cursor:pointer;color:#64748b;">Cancelar</button>
+  </div>
+</div>
+
+<script>
+// Firma canvas
+const canvas = document.getElementById('firma-canvas');
+if (canvas) {
+  const ctx = canvas.getContext('2d');
+  let drawing = false;
+  ctx.strokeStyle = '#1e293b';
+  ctx.lineWidth = 2;
+  ctx.lineCap = 'round';
+
+  const getPos = (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    return { x: (clientX - rect.left) * scaleX, y: (clientY - rect.top) * scaleY };
+  };
+
+  canvas.addEventListener('mousedown', e => { drawing = true; const p = getPos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); });
+  canvas.addEventListener('mousemove', e => { if (!drawing) return; const p = getPos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); });
+  canvas.addEventListener('mouseup', () => drawing = false);
+  canvas.addEventListener('touchstart', e => { e.preventDefault(); drawing = true; const p = getPos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); }, { passive: false });
+  canvas.addEventListener('touchmove', e => { e.preventDefault(); if (!drawing) return; const p = getPos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); }, { passive: false });
+  canvas.addEventListener('touchend', () => drawing = false);
+}
+
+function limpiarFirma() {
+  const canvas = document.getElementById('firma-canvas');
+  if (canvas) canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+}
+</script>
 </body>
 </html>
