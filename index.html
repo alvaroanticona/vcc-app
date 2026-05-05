@@ -1226,7 +1226,9 @@ function guardarRespuesta() {
     verificador: state.user.nombre,
     email: state.user.email,
     fotoThumb: state.formData.fotoThumb || null,        // miniatura para mostrar en app
-    fotoHallazgoThumb: state.formData.fotoHallazgoThumb || null
+    fotoHallazgoThumb: state.formData.fotoHallazgoThumb || null,
+    foto: state.formData.foto || null,                  // foto completa para PDF
+    fotoHallazgo: state.formData.fotoHallazgo || null   // foto hallazgo completa para PDF
   };
 
   state.respuestas[key] = registro;
@@ -1368,8 +1370,10 @@ function generarPDF() {
         </div>
         <p style="font-size:13px;color:#1e293b;margin:0 0 8px;line-height:1.4;">${p.texto}</p>
         ${resp?.comentario ? `<div style="background:#f8fafc;border-radius:6px;padding:8px;font-size:12px;color:#475569;margin-top:6px;">Comentario: ${resp.comentario}</div>` : ''}
+        ${resp?.foto ? `<div style="margin-top:8px;"><p style="font-size:10px;color:#64748b;font-weight:600;text-transform:uppercase;margin:0 0 4px;">📸 Foto de evidencia</p><img src="${resp.foto}" style="max-width:100%;max-height:200px;border-radius:6px;border:1px solid #e2e8f0;object-fit:cover;"></div>` : ''}
         ${resp?.resultado === 'NO' ? `<div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:6px;padding:10px;margin-top:8px;">
           ${resp.observacion ? `<p style="font-size:11px;color:#c2410c;font-weight:700;margin:0 0 3px;text-transform:uppercase;">Hallazgo</p><p style="font-size:12px;margin:0 0 8px;">${resp.observacion}</p>` : ''}
+          ${resp.fotoHallazgo ? `<div style="margin-top:8px;margin-bottom:8px;"><p style="font-size:10px;color:#c2410c;font-weight:600;text-transform:uppercase;margin:0 0 4px;">📸 Foto del hallazgo</p><img src="${resp.fotoHallazgo}" style="max-width:100%;max-height:200px;border-radius:6px;border:1px solid #fed7aa;object-fit:cover;"></div>` : ''}
           ${resp.plan ? `<p style="font-size:11px;color:#c2410c;font-weight:700;margin:0 0 3px;text-transform:uppercase;">Plan de acción</p><p style="font-size:12px;margin:0;">${resp.plan}</p>` : ''}</div>` : ''}
       </div>`;
   });
