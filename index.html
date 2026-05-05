@@ -860,7 +860,10 @@ function openProgreso() {
   vccsAMostrar.forEach(vccId => {
     const vcc = VCC_DATA[vccId];
     if (!vcc) return;
-    const totalPregs = Object.values(vcc.controles).reduce((s,c) => s + c.preguntas.length, 0);
+    const controlesAsignadosVCC = state.programaciones.length > 0 && typeof state.programaciones[0] === 'object'
+      ? state.programaciones.filter(p => p.vcc === vccId).map(p => p.control)
+      : Object.keys(vcc.controles);
+    const totalPregs = controlesAsignadosVCC.reduce((s, ctrlId) => s + (vcc.controles[ctrlId]?.preguntas.length || 0), 0);
     const respVCC = Object.keys(state.respuestas).filter(k => k.startsWith(vccId)).length;
     const pct = totalPregs > 0 ? Math.round(respVCC/totalPregs*100) : 0;
     const color = pct === 100 ? '#10b981' : pct > 50 ? '#f59e0b' : '#ef4444';
@@ -965,9 +968,12 @@ function renderHome() {
   vccsAMostrar.forEach((vccId, idx) => {
     const vcc = VCC_DATA[vccId];
     if (!vcc) return;
-    const totalPregs = Object.values(vcc.controles).reduce((s,c) => s + c.preguntas.length, 0);
-    const respVCC = Object.keys(state.respuestas).filter(k => k.startsWith(vccId)).length;
-    const isDone = respVCC >= totalPregs;
+    const controlesAsignadosVCC2 = state.programaciones.length > 0 && typeof state.programaciones[0] === 'object'
+      ? state.programaciones.filter(p => p.vcc === vccId).map(p => p.control)
+      : Object.keys(vcc.controles);
+    const totalPregs = controlesAsignadosVCC2.reduce((s, ctrlId) => s + (vcc.controles[ctrlId]?.preguntas.length || 0), 0);
+    const respVCC = Object.keys(state.respuestas).filter(k => k.startsWith(vccId) && controlesAsignadosVCC2.some(c => k.includes('_' + c + '_'))).length;
+    const isDone = totalPregs > 0 && respVCC >= totalPregs;
     const card = document.createElement('div');
     card.className = 'vcc-card';
     card.style.animationDelay = `${idx * 0.05}s`;
@@ -1423,16 +1429,11 @@ ${preguntasHTML}
   <div style="text-align:center;border-left:1px solid #e2e8f0;border-right:1px solid #e2e8f0;"><p style="font-size:22px;font-weight:700;color:#10b981;margin:0;">${conformes}</p><p style="font-size:11px;color:#64748b;margin:0;">Conformes</p></div>
   <div style="text-align:center;"><p style="font-size:22px;font-weight:700;color:#ef4444;margin:0;">${hallazgos}</p><p style="font-size:11px;color:#64748b;margin:0;">Hallazgos</p></div>
 </div>
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:20px;padding-top:16px;border-top:1px solid #e2e8f0;">
+<div style="max-width:280px;margin-top:20px;padding-top:16px;border-top:1px solid #e2e8f0;">
   <div style="text-align:center;">
     ${firmaData ? `<img src="${firmaData}" style="height:60px;width:100%;object-fit:contain;border-bottom:1px solid #1e293b;margin-bottom:6px;">` : '<div style="height:60px;border-bottom:1px solid #1e293b;margin-bottom:6px;"></div>'}
     <p style="font-size:12px;font-weight:600;color:#1e293b;margin:0;">${state.user.nombre}</p>
     <p style="font-size:11px;color:#64748b;margin:2px 0 0;">Verificador</p>
-  </div>
-  <div style="text-align:center;">
-    <div style="height:60px;border-bottom:1px solid #1e293b;margin-bottom:6px;"></div>
-    <p style="font-size:12px;font-weight:600;color:#1e293b;margin:0;">Supervisor SSMA</p>
-    <p style="font-size:11px;color:#64748b;margin:2px 0 0;">Firma y sello</p>
   </div>
 </div>
 <div style="text-align:center;margin-top:20px;">
