@@ -879,6 +879,8 @@ function doLogin() {
   localStorage.setItem('vcc_user', JSON.stringify(state.user));
   renderHome();
   navigate('screen-home');
+  // Cargar programaciones y respuestas del servidor
+  setTimeout(() => loadResponsesFromSheets(), 100);
 }
 
 // ─── HOME ──────────────────────────────────────────────────────────────
@@ -1442,6 +1444,7 @@ async function generarPDF() {
   const vccId = state.currentVCC;
   const ctrlId = state.currentControl;
   const ctrl = VCC_DATA[vccId].controles[ctrlId];
+  const vcc = VCC_DATA[vccId];
   for (const p of ctrl.preguntas) {
     const k = `${vccId}_${ctrlId}_${p.id}`;
     if (state.respuestas[k] && !state.respuestas[k].foto) {
@@ -1452,11 +1455,6 @@ async function generarPDF() {
       }
     }
   }
-
-  const vccId = state.currentVCC;
-  const ctrlId = state.currentControl;
-  const ctrl = VCC_DATA[vccId].controles[ctrlId];
-  const vcc = VCC_DATA[vccId];
   const now = new Date();
   const fecha = now.toLocaleDateString('es-PE', {day:'2-digit', month:'long', year:'numeric'});
   
@@ -1647,9 +1645,6 @@ function showToast(msg, type) {
 
 // ─── INIT ──────────────────────────────────────────────────────────────
 function init() {
-  initDB().then(() => {
-    // DB lista, continuar con init normal
-  });
   const savedUser = localStorage.getItem('vcc_user');
   const savedResp = localStorage.getItem('vcc_respuestas');
   if (savedResp) {
@@ -1659,13 +1654,13 @@ function init() {
   if (savedProgs) {
     try { state.programaciones = JSON.parse(savedProgs); } catch(e) {}
   }
+  // Init IndexedDB en paralelo (no bloquea la app)
+  initDB();
   if (savedUser) {
     try {
       state.user = JSON.parse(savedUser);
-      // Mostrar home INMEDIATAMENTE con datos del caché
       renderHome();
       showScreen('screen-home');
-      // Sincronizar con Sheets en segundo plano sin bloquear
       setTimeout(() => loadResponsesFromSheets(), 100);
     } catch(e) {
       showScreen('screen-login');
