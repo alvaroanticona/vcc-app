@@ -737,8 +737,9 @@ if ('serviceWorker' in navigator) {
       </div>
     </div>
 
+    <div id="si-section">
     <div class="form-section">
-      <span class="form-label">Foto de evidencia (opcional)</span>
+      <span class="form-label">Foto de evidencia *</span>
       <button class="foto-btn" onclick="document.getElementById('foto-input').click()">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
         Tomar foto o adjuntar
@@ -748,8 +749,9 @@ if ('serviceWorker' in navigator) {
     </div>
 
     <div class="form-section">
-      <span class="form-label">Comentario (opcional)</span>
-      <textarea class="form-textarea" id="form-comentario" placeholder="Agrega un comentario..."></textarea>
+      <span class="form-label">Comentario *</span>
+      <textarea class="form-textarea" id="form-comentario" placeholder="Agrega un comentario de evidencia..."></textarea>
+    </div>
     </div>
 
     <div class="hallazgo-section" id="hallazgo-section">
@@ -1177,6 +1179,7 @@ function openForm(vccId, ctrlId, pregunta) {
   document.getElementById('foto-preview').style.display = 'none';
   document.getElementById('foto-hallazgo-preview').style.display = 'none';
   document.getElementById('hallazgo-section').classList.remove('show');
+  document.getElementById('si-section').style.display = 'none';
 
   // Pre-fill si ya hay respuesta
   const key = `${vccId}_${ctrlId}_${pregunta.id}`;
@@ -1222,9 +1225,16 @@ function selectRespuesta(valor, silent) {
   document.getElementById('btn-no').className = `btn-sn ${valor === 'NO' ? 'selected-no' : ''}`;
   document.getElementById('btn-si').dataset.selected = valor === 'SI' ? 'true' : '';
   document.getElementById('btn-no').dataset.selected = valor === 'NO' ? 'true' : '';
+  // Mostrar foto+comentario solo cuando SI, hallazgo solo cuando NO
+  const siSection = document.getElementById('si-section');
   const hallazgo = document.getElementById('hallazgo-section');
-  if (valor === 'NO') hallazgo.classList.add('show');
-  else hallazgo.classList.remove('show');
+  if (valor === 'SI') {
+    siSection.style.display = 'block';
+    hallazgo.classList.remove('show');
+  } else {
+    siSection.style.display = 'none';
+    hallazgo.classList.add('show');
+  }
 }
 
 function compressImage(file, maxSize, quality, callback) {
@@ -1285,12 +1295,11 @@ function guardarRespuesta() {
   if (!state.formData.resultado) { showToast('Selecciona SI o NO'); return; }
   if (!state.currentPregunta) { showToast('Error: recarga la app'); return; }
   
-  // SI requiere foto y comentario obligatorio
+  // SI requiere foto de evidencia y comentario
   if (state.formData.resultado === 'SI') {
     if (!state.formData.foto) { showToast('📸 Adjunta una foto de evidencia'); return; }
-    if (!document.getElementById('form-comentario').value.trim()) { showToast('💬 Agrega un comentario de evidencia'); return; }
+    if (!document.getElementById('form-comentario').value.trim()) { showToast('💬 Agrega un comentario'); return; }
   }
-  
   // NO requiere observacion y plan de accion
   if (state.formData.resultado === 'NO') {
     if (!document.getElementById('form-observacion').value.trim()) { showToast('📋 Describe el hallazgo encontrado'); return; }
