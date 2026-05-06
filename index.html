@@ -853,18 +853,21 @@ if ('serviceWorker' in navigator) {
 let listaPersonal = []; // Se carga desde el Sheet
 
 function cargarListaPersonal() {
+  // Cargar del caché inmediatamente para que funcione offline
+  const cached = localStorage.getItem('vcc_personal');
+  if (cached) {
+    try { listaPersonal = JSON.parse(cached); } catch(e) {}
+  }
+  // Actualizar desde el servidor en segundo plano
   fetch(SHEETS_URL + '?action=getUsuarios')
     .then(r => r.json())
     .then(data => {
-      if (data.usuarios) {
+      if (data.usuarios && data.usuarios.length > 0) {
         listaPersonal = data.usuarios;
         localStorage.setItem('vcc_personal', JSON.stringify(listaPersonal));
       }
     })
-    .catch(() => {
-      const cached = localStorage.getItem('vcc_personal');
-      if (cached) listaPersonal = JSON.parse(cached);
-    });
+    .catch(() => {}); // silencioso — ya tenemos el caché
 }
 
 function filtrarPersonal(query) {
@@ -1772,9 +1775,11 @@ ${preguntasHTML}
 }
 
 function syncToSheets(payload, isPending) {
+  // Mostrar toast inmediatamente — no esperar al servidor
+  if (!isPending) showToast('✓ Guardado localmente', 'success');
+
   if (!navigator.onLine) {
     saveToPendingQueue(payload);
-    if (!isPending) showToast('💾 Guardado — se sincronizará con señal', '');
     return;
   }
   const payloadSinFoto = {
@@ -1782,19 +1787,23 @@ function syncToSheets(payload, isPending) {
     vcc: payload.vcc, control: payload.control, pregunta_id: payload.pregunta_id,
     pregunta: payload.pregunta, resultado: payload.resultado, comentario: payload.comentario,
     observacion: payload.observacion, plan: payload.plan, estado: payload.estado,
+    personal_asignado_dni: payload.personal_asignado_dni || '',
+    personal_asignado_nombre: payload.personal_asignado_nombre || '',
+    personal_asignado_correo: payload.personal_asignado_correo || '',
+    fecha_limite: payload.fecha_limite || '',
     foto: payload.foto || '', fotoHallazgo: payload.fotoHallazgo || ''
   };
-  // Usar fetch con mode no-cors — Apps Script acepta JSON directo
-  fetch(SHEETS_URL, {
-    method: 'POST',
-    mode: 'no-cors',
-    headers: { 'Content-Type': 'text/plain' },
-    body: JSON.stringify(payloadSinFoto)
-  }).catch(() => {
-    // Si falla el fetch, guardar en cola pendiente
-    saveToPendingQueue(payloadSinFoto);
-  });
-  if (!isPending) showToast('✓ Guardado y sincronizado', 'success');
+  // Fire and forget — no bloquea la UI
+  setTimeout(() => {
+    fetch(SHEETS_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify(payloadSinFoto)
+    }).catch(() => {
+      saveToPendingQueue(payloadSinFoto);
+    });
+  }, 0);
 }
 
 function saveToPendingQueue(payload) {
