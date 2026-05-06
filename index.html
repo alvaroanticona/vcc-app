@@ -490,6 +490,30 @@ if ('serviceWorker' in navigator) {
   }
   .form-textarea:focus { outline: none; border-color: var(--blue); }
 
+  /* Buscador desplegable personal */
+  .search-dropdown { position:relative; }
+  .search-dropdown input {
+    width:100%; padding:10px 14px; border:1.5px solid var(--gray-200);
+    border-radius:var(--radius-sm); font-size:14px; font-family:'Barlow',sans-serif;
+    background:var(--white); color:var(--gray-800);
+    transition: border-color 0.2s;
+  }
+  .search-dropdown input:focus { outline:none; border-color:var(--blue); }
+  .search-dropdown-list {
+    position:absolute; top:calc(100% + 4px); left:0; right:0;
+    background:var(--white); border:1.5px solid var(--blue);
+    border-radius:var(--radius-sm); max-height:200px; overflow-y:auto;
+    z-index:100; box-shadow:var(--shadow);
+  }
+  .search-dropdown-item {
+    padding:10px 14px; cursor:pointer; border-bottom:1px solid var(--gray-100);
+    transition: background 0.15s;
+  }
+  .search-dropdown-item:hover { background:var(--gray-50); }
+  .search-dropdown-item .item-nombre { font-size:13px; font-weight:600; color:var(--gray-800); }
+  .search-dropdown-item .item-detalle { font-size:11px; color:var(--gray-400); margin-top:1px; }
+  .search-dropdown-item:last-child { border-bottom:none; }
+
   .hallazgo-section {
     background: #fff7ed;
     border: 1.5px solid #fed7aa;
@@ -788,7 +812,7 @@ if ('serviceWorker' in navigator) {
         <span class="form-label">Plan de acción</span>
         <textarea class="form-textarea" id="form-plan" placeholder="¿Qué acción se tomará para corregirlo?"></textarea>
       </div>
-      <div class="form-section" style="margin-bottom:0">
+      <div class="form-section" style="margin-bottom:14px">
         <span class="form-label">Foto del hallazgo</span>
         <button class="foto-btn" onclick="document.getElementById('foto-hallazgo-input').click()">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
@@ -797,6 +821,27 @@ if ('serviceWorker' in navigator) {
         <input type="file" accept="image/*" capture="environment" class="input-file-hidden" id="foto-hallazgo-input" onchange="handleFotoHallazgo(this)">
         <img id="foto-hallazgo-preview" class="foto-preview" style="display:none">
       </div>
+      <div class="form-section" style="margin-bottom:14px">
+        <span class="form-label">Personal asignado *</span>
+        <div class="search-dropdown" id="personal-dropdown">
+          <input type="text" id="form-personal-search" placeholder="Busca por nombre o DNI..."
+            oninput="filtrarPersonal(this.value)" autocomplete="off"
+            onfocus="filtrarPersonal(this.value)">
+          <div class="search-dropdown-list" id="personal-list" style="display:none"></div>
+        </div>
+        <div id="personal-seleccionado" style="display:none;margin-top:8px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:8px 12px;">
+          <span style="font-size:12px;font-weight:600;color:#15803d;" id="personal-sel-nombre"></span>
+          <span style="font-size:11px;color:#16a34a;margin-left:6px;" id="personal-sel-area"></span>
+          <button onclick="limpiarPersonal()" style="float:right;background:none;border:none;color:#ef4444;font-size:16px;cursor:pointer;line-height:1;">×</button>
+        </div>
+        <input type="hidden" id="form-personal-dni">
+        <input type="hidden" id="form-personal-nombre">
+        <input type="hidden" id="form-personal-correo">
+      </div>
+      <div class="form-section" style="margin-bottom:0">
+        <span class="form-label">Fecha límite *</span>
+        <input type="date" id="form-fecha-limite" style="width:100%;padding:10px 14px;border:1.5px solid var(--gray-200);border-radius:var(--radius-sm);font-size:14px;font-family:'Barlow',sans-serif;background:var(--white);color:var(--gray-800);">
+      </div>
     </div>
 
     <button class="btn-guardar" onclick="guardarRespuesta()">GUARDAR VERIFICACIÓN</button>
@@ -804,6 +849,67 @@ if ('serviceWorker' in navigator) {
 </div>
 
 <script>
+// ─── PERSONAL BUSCADOR ────────────────────────────────────────────────
+let listaPersonal = []; // Se carga desde el Sheet
+
+function cargarListaPersonal() {
+  fetch(SHEETS_URL + '?action=getUsuarios')
+    .then(r => r.json())
+    .then(data => {
+      if (data.usuarios) {
+        listaPersonal = data.usuarios;
+        localStorage.setItem('vcc_personal', JSON.stringify(listaPersonal));
+      }
+    })
+    .catch(() => {
+      const cached = localStorage.getItem('vcc_personal');
+      if (cached) listaPersonal = JSON.parse(cached);
+    });
+}
+
+function filtrarPersonal(query) {
+  const list = document.getElementById('personal-list');
+  if (!query || query.length < 2) { list.style.display = 'none'; return; }
+  const q = query.toLowerCase();
+  const resultados = listaPersonal.filter(p =>
+    p.nombre.toLowerCase().includes(q) || p.dni.includes(q) || p.area.toLowerCase().includes(q)
+  ).slice(0, 8);
+  if (resultados.length === 0) { list.style.display = 'none'; return; }
+  list.innerHTML = resultados.map(p => `
+    <div class="search-dropdown-item" onclick="seleccionarPersonal('${p.dni}','${p.nombre.replace(/'/g,"\'")}','${p.correo}','${p.area}')">
+      <div class="item-nombre">${p.nombre}</div>
+      <div class="item-detalle">${p.cargo} · ${p.area}</div>
+    </div>`).join('');
+  list.style.display = 'block';
+}
+
+function seleccionarPersonal(dni, nombre, correo, area) {
+  document.getElementById('form-personal-dni').value = dni;
+  document.getElementById('form-personal-nombre').value = nombre;
+  document.getElementById('form-personal-correo').value = correo;
+  document.getElementById('form-personal-search').value = nombre;
+  document.getElementById('personal-sel-nombre').textContent = nombre;
+  document.getElementById('personal-sel-area').textContent = '· ' + area;
+  document.getElementById('personal-seleccionado').style.display = 'block';
+  document.getElementById('personal-list').style.display = 'none';
+}
+
+function limpiarPersonal() {
+  document.getElementById('form-personal-dni').value = '';
+  document.getElementById('form-personal-nombre').value = '';
+  document.getElementById('form-personal-correo').value = '';
+  document.getElementById('form-personal-search').value = '';
+  document.getElementById('personal-seleccionado').style.display = 'none';
+}
+
+// Cerrar dropdown al tocar fuera
+document.addEventListener('click', e => {
+  if (!e.target.closest('#personal-dropdown')) {
+    const list = document.getElementById('personal-list');
+    if (list) list.style.display = 'none';
+  }
+});
+
 // ─── INDEXED DB (fotos persistentes offline) ─────────────────────────────
 const DB_NAME = 'vcc_fotos_db';
 const DB_VERSION = 1;
@@ -921,6 +1027,7 @@ function doLogin() {
           navigate('screen-home');
           setTimeout(() => loadResponsesFromSheets(), 100);
         }
+        cargarListaPersonal();
       } else {
         document.getElementById('login-error').style.display = 'block';
       }
@@ -1269,6 +1376,8 @@ function openForm(vccId, ctrlId, pregunta) {
   document.getElementById('foto-hallazgo-preview').style.display = 'none';
   document.getElementById('hallazgo-section').classList.remove('show');
   document.getElementById('si-section').style.display = 'none';
+  limpiarPersonal();
+  document.getElementById('form-fecha-limite').value = '';
 
   // Pre-fill si ya hay respuesta
   const key = `${vccId}_${ctrlId}_${pregunta.id}`;
@@ -1278,6 +1387,10 @@ function openForm(vccId, ctrlId, pregunta) {
     if (existing.comentario) document.getElementById('form-comentario').value = existing.comentario;
     if (existing.observacion) document.getElementById('form-observacion').value = existing.observacion;
     if (existing.plan) document.getElementById('form-plan').value = existing.plan;
+    if (existing.personal_asignado_dni) {
+      seleccionarPersonal(existing.personal_asignado_dni, existing.personal_asignado_nombre, existing.personal_asignado_correo || '', existing.personal_asignado_area || '');
+    }
+    if (existing.fecha_limite) document.getElementById('form-fecha-limite').value = existing.fecha_limite;
     // Restaurar thumbs inmediatamente
     if (existing.fotoThumb) {
       state.formData.fotoThumb = existing.fotoThumb;
@@ -1389,10 +1502,12 @@ function guardarRespuesta() {
     if (!state.formData.foto) { showToast('📸 Adjunta una foto de evidencia'); return; }
     if (!document.getElementById('form-comentario').value.trim()) { showToast('💬 Agrega un comentario'); return; }
   }
-  // NO requiere observacion y plan de accion
+  // NO requiere observacion, plan, personal asignado y fecha limite
   if (state.formData.resultado === 'NO') {
     if (!document.getElementById('form-observacion').value.trim()) { showToast('📋 Describe el hallazgo encontrado'); return; }
     if (!document.getElementById('form-plan').value.trim()) { showToast('✅ Agrega un plan de acción'); return; }
+    if (!document.getElementById('form-personal-dni').value) { showToast('👤 Asigna un responsable'); return; }
+    if (!document.getElementById('form-fecha-limite').value) { showToast('📅 Agrega una fecha límite'); return; }
   }
   
   const key = `${state.currentVCC}_${state.currentControl}_${state.currentPregunta.id}`;
@@ -1450,6 +1565,10 @@ function guardarRespuesta() {
     observacion: document.getElementById('form-observacion').value || '',
     plan: document.getElementById('form-plan').value || '',
     estado: 'Guardado',
+    personal_asignado_dni: document.getElementById('form-personal-dni').value || '',
+    personal_asignado_nombre: document.getElementById('form-personal-nombre').value || '',
+    personal_asignado_correo: document.getElementById('form-personal-correo').value || '',
+    fecha_limite: document.getElementById('form-fecha-limite').value || '',
     foto: state.formData.foto || '',
     fotoHallazgo: state.formData.fotoHallazgo || ''
   };
