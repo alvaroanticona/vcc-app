@@ -646,15 +646,15 @@ if ('serviceWorker' in navigator) {
 <!-- SCREEN: DASHBOARD ADMIN -->
 <div id="screen-dashboard" class="screen">
   <div class="app-header">
-    <button class="back-btn" onclick="logout()">
-      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+    <button class="btn-back" onclick="goBack()">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
     </button>
     <div class="header-title"><h2>Dashboard</h2><p>Panel de administrador</p></div>
   </div>
   <div style="padding:20px;text-align:center;color:var(--gray-400);margin-top:60px;">
     <div style="font-size:48px;margin-bottom:12px;">🚧</div>
     <p style="font-size:16px;font-weight:600;">Dashboard en construcción</p>
-    <p style="font-size:13px;margin-top:8px;">Próximamente disponible</p>
+    <p style="font-size:13px;margin-top:8px;">Próximamente disponible — Power BI</p>
   </div>
 </div>
 
@@ -667,6 +667,7 @@ if ('serviceWorker' in navigator) {
     </div>
     <button onclick="openProgreso()" style="background:rgba(255,255,255,0.1);border:none;border-radius:10px;color:white;padding:8px 12px;font-size:12px;font-weight:600;font-family:'Barlow',sans-serif;cursor:pointer;">📊 Progreso</button>
     <button onclick="openHallazgos()" id="btn-hallazgos-home" style="display:none;background:rgba(239,68,68,0.3);border:1px solid rgba(239,68,68,0.5);border-radius:10px;color:white;padding:8px 12px;font-size:12px;font-weight:600;font-family:'Barlow',sans-serif;cursor:pointer;">⚠️ <span id="hallazgos-count">0</span></button>
+    <button onclick="navigate('screen-dashboard')" id="btn-dashboard-home" style="display:none;background:rgba(245,158,11,0.3);border:1px solid rgba(245,158,11,0.5);border-radius:10px;color:white;padding:8px 12px;font-size:12px;font-weight:600;font-family:'Barlow',sans-serif;cursor:pointer;">👔 Admin</button>
   <div class="header-avatar" id="home-avatar" onclick="showLogoutMenu()" style="cursor:pointer">A</div>
   </div>
   <div id="logout-menu" style="display:none;position:fixed;top:60px;right:16px;background:white;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.15);z-index:200;overflow:hidden;">
@@ -1263,15 +1264,16 @@ function doLogin() {
         const u = data.usuario;
         state.user = { dni: u.dni, email: u.correo, nombre: u.nombre, cargo: u.cargo, area: u.area, rol: u.rol };
         localStorage.setItem('vcc_user', JSON.stringify(state.user));
-        if (u.rol === 'admin') {
-          renderDashboard();
-          navigate('screen-dashboard');
-        } else {
-          renderHome();
-          navigate('screen-home');
-          setTimeout(() => loadResponsesFromSheets(), 100);
-        }
+        // Admin y verificador van al home — admin tiene botón extra de dashboard
+        renderHome();
+        navigate('screen-home');
+        setTimeout(() => loadResponsesFromSheets(), 100);
         cargarListaPersonal();
+        // Mostrar botón dashboard si es admin
+        if (u.rol === 'admin') {
+          const btnDash = document.getElementById('btn-dashboard-home');
+          if (btnDash) btnDash.style.display = 'block';
+        }
         // Cargar hallazgos asignados en segundo plano
         setTimeout(() => {
           const cachedH = localStorage.getItem('vcc_hallazgos');
@@ -1328,7 +1330,7 @@ function doLoginPreview(dni) {
 
 // ─── DASHBOARD ADMIN ──────────────────────────────────────────────────
 function renderDashboard() {
-  // Dashboard completo - próxima fase
+  // Dashboard completo - próxima fase (Power BI)
 }
 
 // ─── HOME ──────────────────────────────────────────────────────────────
@@ -2132,13 +2134,12 @@ function init() {
   if (savedUser) {
     try {
       state.user = JSON.parse(savedUser);
+      renderHome();
+      showScreen('screen-home');
+      setTimeout(() => loadResponsesFromSheets(), 100);
       if (state.user.rol === 'admin') {
-        renderDashboard();
-        showScreen('screen-dashboard');
-      } else {
-        renderHome();
-        showScreen('screen-home');
-        setTimeout(() => loadResponsesFromSheets(), 100);
+        const btnDash = document.getElementById('btn-dashboard-home');
+        if (btnDash) btnDash.style.display = 'block';
       }
     } catch(e) {
       showScreen('screen-login');
