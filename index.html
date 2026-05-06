@@ -575,17 +575,38 @@ if ('serviceWorker' in navigator) {
     </div>
     <div class="login-card">
       <h2>Iniciar sesión</h2>
-      <p>Ingresa tu correo para continuar</p>
+      <p>Ingresa tu DNI para continuar</p>
       <div class="input-group">
-        <label>Correo electrónico</label>
-        <input type="email" id="login-email" placeholder="tu@correo.com" autocomplete="email">
+        <label>DNI</label>
+        <input type="tel" id="login-dni" placeholder="Ingresa tu DNI" maxlength="8" autocomplete="off"
+          oninput="this.value=this.value.replace(/[^0-9]/g,'');previewUsuario()"
+          onkeydown="if(event.key==='Enter') doLogin()">
       </div>
-      <div class="input-group">
-        <label>Nombre</label>
-        <input type="text" id="login-nombre" placeholder="Tu nombre completo">
+      <div id="login-user-preview" style="display:none;background:#f0f9ff;border:1px solid #bae6fd;border-radius:12px;padding:12px 14px;margin-bottom:8px;">
+        <div style="font-size:13px;font-weight:700;color:#0369a1;" id="login-preview-nombre"></div>
+        <div style="font-size:11px;color:#0284c7;margin-top:2px;" id="login-preview-cargo"></div>
+        <div style="font-size:11px;color:#0284c7;" id="login-preview-area"></div>
       </div>
-      <button class="btn-primary" onclick="doLogin()">Ingresar a la app</button>
+      <div id="login-error" style="display:none;background:#fef2f2;border:1px solid #fecaca;border-radius:12px;padding:10px 14px;margin-bottom:8px;font-size:12px;color:#dc2626;text-align:center;">
+        DNI no registrado. Contacta al administrador.
+      </div>
+      <button class="btn-primary" id="btn-ingresar" onclick="doLogin()">Ingresar a la app</button>
     </div>
+  </div>
+</div>
+
+<!-- SCREEN: DASHBOARD ADMIN -->
+<div id="screen-dashboard" class="screen">
+  <div class="app-header">
+    <button class="back-btn" onclick="logout()">
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+    </button>
+    <div class="header-title"><h2>Dashboard</h2><p>Panel de administrador</p></div>
+  </div>
+  <div style="padding:20px;text-align:center;color:var(--gray-400);margin-top:60px;">
+    <div style="font-size:48px;margin-bottom:12px;">🚧</div>
+    <p style="font-size:16px;font-weight:600;">Dashboard en construcción</p>
+    <p style="font-size:13px;margin-top:8px;">Próximamente disponible</p>
   </div>
 </div>
 
@@ -873,16 +894,84 @@ function goBack() {
 
 // ─── LOGIN ──────────────────────────────────────────────────────────────
 function doLogin() {
-  const email = document.getElementById('login-email').value.trim();
-  const nombre = document.getElementById('login-nombre').value.trim();
-  if (!email || !nombre) { showToast('Completa todos los campos'); return; }
-  if (!email.includes('@')) { showToast('Ingresa un correo válido'); return; }
-  state.user = { email, nombre };
-  localStorage.setItem('vcc_user', JSON.stringify(state.user));
-  renderHome();
-  navigate('screen-home');
-  // Cargar programaciones y respuestas del servidor
-  setTimeout(() => loadResponsesFromSheets(), 100);
+  const dni = document.getElementById('login-dni').value.trim();
+  if (!dni || dni.length < 7) { showToast('Ingresa tu DNI'); return; }
+
+  const btn = document.getElementById('btn-ingresar');
+  btn.textContent = 'Verificando...';
+  btn.disabled = true;
+  document.getElementById('login-error').style.display = 'none';
+
+  // Buscar usuario en el Sheet
+  const url = SHEETS_URL + '?action=getUsuario&dni=' + dni;
+  fetch(url)
+    .then(r => r.json())
+    .then(data => {
+      btn.textContent = 'Ingresar a la app';
+      btn.disabled = false;
+      if (data.result === 'ok' && data.usuario) {
+        const u = data.usuario;
+        state.user = { dni: u.dni, email: u.correo, nombre: u.nombre, cargo: u.cargo, area: u.area, rol: u.rol };
+        localStorage.setItem('vcc_user', JSON.stringify(state.user));
+        if (u.rol === 'admin') {
+          renderDashboard();
+          navigate('screen-dashboard');
+        } else {
+          renderHome();
+          navigate('screen-home');
+          setTimeout(() => loadResponsesFromSheets(), 100);
+        }
+      } else {
+        document.getElementById('login-error').style.display = 'block';
+      }
+    })
+    .catch(() => {
+      btn.textContent = 'Ingresar a la app';
+      btn.disabled = false;
+      // Sin internet: buscar en caché local
+      const cached = localStorage.getItem('vcc_user');
+      if (cached) {
+        const u = JSON.parse(cached);
+        if (u.dni === dni) {
+          state.user = u;
+          if (u.rol === 'admin') { renderDashboard(); navigate('screen-dashboard'); }
+          else { renderHome(); navigate('screen-home'); }
+          return;
+        }
+      }
+      showToast('Sin conexión. Intenta de nuevo.');
+    });
+}
+
+// Preview usuario al escribir DNI
+function previewUsuario() {
+  const dni = document.getElementById('login-dni').value.trim();
+  document.getElementById('login-user-preview').style.display = 'none';
+  document.getElementById('login-error').style.display = 'none';
+  if (dni.length === 8) doLoginPreview(dni);
+}
+
+function doLoginPreview(dni) {
+  fetch(SHEETS_URL + '?action=getUsuario&dni=' + dni)
+    .then(r => r.json())
+    .then(data => {
+      if (data.result === 'ok' && data.usuario) {
+        const u = data.usuario;
+        document.getElementById('login-preview-nombre').textContent = u.nombre;
+        document.getElementById('login-preview-cargo').textContent = u.cargo;
+        document.getElementById('login-preview-area').textContent = '📍 ' + u.area;
+        document.getElementById('login-user-preview').style.display = 'block';
+        document.getElementById('login-error').style.display = 'none';
+      } else if (dni.length === 8) {
+        document.getElementById('login-error').style.display = 'block';
+        document.getElementById('login-user-preview').style.display = 'none';
+      }
+    }).catch(() => {});
+}
+
+// ─── DASHBOARD ADMIN ──────────────────────────────────────────────────
+function renderDashboard() {
+  // Dashboard completo - próxima fase
 }
 
 // ─── HOME ──────────────────────────────────────────────────────────────
@@ -1668,9 +1757,14 @@ function init() {
   if (savedUser) {
     try {
       state.user = JSON.parse(savedUser);
-      renderHome();
-      showScreen('screen-home');
-      setTimeout(() => loadResponsesFromSheets(), 100);
+      if (state.user.rol === 'admin') {
+        renderDashboard();
+        showScreen('screen-dashboard');
+      } else {
+        renderHome();
+        showScreen('screen-home');
+        setTimeout(() => loadResponsesFromSheets(), 100);
+      }
     } catch(e) {
       showScreen('screen-login');
     }
