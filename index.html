@@ -514,6 +514,30 @@ if ('serviceWorker' in navigator) {
   .search-dropdown-item .item-detalle { font-size:11px; color:var(--gray-400); margin-top:1px; }
   .search-dropdown-item:last-child { border-bottom:none; }
 
+  /* Planes de acción */
+  .hallazgo-card {
+    background:var(--white); border-radius:var(--radius); padding:16px;
+    margin-bottom:12px; box-shadow:var(--shadow-sm);
+    border-left:4px solid var(--red);
+  }
+  .hallazgo-card.levantado { border-left-color:var(--green); opacity:0.8; }
+  .hallazgo-card-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px; }
+  .hallazgo-vcc-badge { font-size:11px; font-weight:700; background:var(--navy); color:white; padding:3px 8px; border-radius:6px; }
+  .hallazgo-estado { font-size:11px; font-weight:700; padding:3px 8px; border-radius:6px; }
+  .hallazgo-estado.pendiente { background:#fef2f2; color:#dc2626; }
+  .hallazgo-estado.vencido { background:#fff7ed; color:#c2410c; }
+  .hallazgo-estado.levantado { background:#f0fdf4; color:#16a34a; }
+  .hallazgo-pregunta { font-size:12px; color:var(--gray-400); margin-bottom:6px; }
+  .hallazgo-obs { font-size:13px; font-weight:600; color:var(--gray-800); margin-bottom:8px; line-height:1.4; }
+  .hallazgo-plan { font-size:12px; color:var(--gray-600); background:var(--gray-50); padding:8px; border-radius:8px; margin-bottom:8px; }
+  .hallazgo-meta { display:flex; justify-content:space-between; font-size:11px; color:var(--gray-400); margin-bottom:10px; }
+  .hallazgo-meta span { display:flex; align-items:center; gap:4px; }
+  .hallazgo-meta .vencido-text { color:#dc2626; font-weight:600; }
+  .btn-levantar { width:100%; padding:10px; background:linear-gradient(135deg,#059669,#10b981); color:white; border:none; border-radius:10px; font-size:13px; font-weight:600; font-family:'Barlow',sans-serif; cursor:pointer; }
+  .btn-levantar:active { transform:scale(0.98); }
+  .hallazgos-empty { text-align:center; padding:40px 20px; color:var(--gray-400); }
+  .hallazgos-empty .empty-icon { font-size:48px; margin-bottom:12px; }
+
   .hallazgo-section {
     background: #fff7ed;
     border: 1.5px solid #fed7aa;
@@ -642,6 +666,7 @@ if ('serviceWorker' in navigator) {
       <p id="home-subtitle">VCCs asignados</p>
     </div>
     <button onclick="openProgreso()" style="background:rgba(255,255,255,0.1);border:none;border-radius:10px;color:white;padding:8px 12px;font-size:12px;font-weight:600;font-family:'Barlow',sans-serif;cursor:pointer;">📊 Progreso</button>
+    <button onclick="openHallazgos()" id="btn-hallazgos-home" style="display:none;background:rgba(239,68,68,0.3);border:1px solid rgba(239,68,68,0.5);border-radius:10px;color:white;padding:8px 12px;font-size:12px;font-weight:600;font-family:'Barlow',sans-serif;cursor:pointer;">⚠️ <span id="hallazgos-count">0</span></button>
   <div class="header-avatar" id="home-avatar" onclick="showLogoutMenu()" style="cursor:pointer">A</div>
   </div>
   <div id="logout-menu" style="display:none;position:fixed;top:60px;right:16px;background:white;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.15);z-index:200;overflow:hidden;">
@@ -675,6 +700,45 @@ if ('serviceWorker' in navigator) {
     <span id="home-mes">Mes actual</span>
   </div>
   <div class="vcc-list" id="vcc-list"></div>
+</div>
+
+<!-- SCREEN: MIS PLANES DE ACCIÓN -->
+<div id="screen-hallazgos" class="screen">
+  <div class="app-header">
+    <button class="btn-back" onclick="goBack()">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <div class="header-title">
+      <h2>Mis Planes de Acción</h2>
+      <p id="hallazgos-subtitle">Hallazgos asignados</p>
+    </div>
+  </div>
+  <div style="padding:16px;" id="hallazgos-list"></div>
+</div>
+
+<!-- MODAL: LEVANTAR HALLAZGO -->
+<div id="modal-levantar" style="display:none;position:fixed;inset:0;z-index:300;background:rgba(0,0,0,0.6);overflow-y:auto;">
+  <div style="background:white;margin:20px 16px;border-radius:var(--radius);padding:20px;max-width:430px;margin-left:auto;margin-right:auto;">
+    <h3 style="font-size:16px;font-weight:700;color:var(--navy);margin-bottom:4px;">Registrar levantamiento</h3>
+    <p id="modal-hallazgo-desc" style="font-size:12px;color:var(--gray-400);margin-bottom:16px;"></p>
+    <div class="form-section" style="margin-bottom:14px;">
+      <span class="form-label">Descripción del levantamiento *</span>
+      <textarea class="form-textarea" id="levantar-descripcion" placeholder="Describe qué acción tomaste para resolver el hallazgo..."></textarea>
+    </div>
+    <div class="form-section" style="margin-bottom:16px;">
+      <span class="form-label">Foto de evidencia del cierre *</span>
+      <button class="foto-btn" onclick="document.getElementById('levantar-foto-input').click()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+        Tomar foto
+      </button>
+      <input type="file" accept="image/*" capture="environment" class="input-file-hidden" id="levantar-foto-input" onchange="handleFotoLevantar(this)">
+      <img id="levantar-foto-preview" class="foto-preview" style="display:none">
+    </div>
+    <div style="display:flex;gap:10px;">
+      <button onclick="cerrarModalLevantar()" style="flex:1;padding:12px;background:var(--gray-100);border:none;border-radius:10px;font-size:14px;font-weight:600;font-family:'Barlow',sans-serif;cursor:pointer;color:var(--gray-600);">Cancelar</button>
+      <button onclick="confirmarLevantamiento()" style="flex:2;padding:12px;background:linear-gradient(135deg,#059669,#10b981);color:white;border:none;border-radius:10px;font-size:14px;font-weight:600;font-family:'Barlow',sans-serif;cursor:pointer;">✓ Confirmar levantamiento</button>
+    </div>
+  </div>
 </div>
 
 <!-- SCREEN: CONTROLES -->
@@ -849,6 +913,183 @@ if ('serviceWorker' in navigator) {
 </div>
 
 <script>
+// ─── PLANES DE ACCIÓN / HALLAZGOS ─────────────────────────────────────
+let hallazgosAsignados = [];
+let hallazgoActivo = null;
+let fotoLevantamiento = null;
+
+function openHallazgos() {
+  cargarHallazgos();
+  navigate('screen-hallazgos');
+}
+
+function cargarHallazgos() {
+  const dni = state.user.dni;
+  if (!dni) return;
+  document.getElementById('hallazgos-list').innerHTML = '<p style="text-align:center;color:var(--gray-400);padding:30px;">Cargando...</p>';
+
+  // Cargar del caché primero
+  const cached = localStorage.getItem('vcc_hallazgos');
+  if (cached) {
+    try {
+      hallazgosAsignados = JSON.parse(cached);
+      renderHallazgos();
+    } catch(e) {}
+  }
+
+  // Actualizar desde el servidor
+  fetch(SHEETS_URL + '?action=getHallazgos&dni=' + dni)
+    .then(r => r.json())
+    .then(data => {
+      if (data.hallazgos) {
+        hallazgosAsignados = data.hallazgos;
+        localStorage.setItem('vcc_hallazgos', JSON.stringify(hallazgosAsignados));
+        renderHallazgos();
+        actualizarBadgeHallazgos();
+      }
+    })
+    .catch(() => renderHallazgos());
+}
+
+function actualizarBadgeHallazgos() {
+  const pendientes = hallazgosAsignados.filter(h => h.estado_hallazgo !== 'Levantado').length;
+  const btn = document.getElementById('btn-hallazgos-home');
+  const count = document.getElementById('hallazgos-count');
+  if (btn && count) {
+    count.textContent = pendientes;
+    btn.style.display = pendientes > 0 ? 'block' : 'none';
+  }
+}
+
+function renderHallazgos() {
+  const list = document.getElementById('hallazgos-list');
+  if (!list) return;
+  const pendientes = hallazgosAsignados.filter(h => h.estado_hallazgo !== 'Levantado');
+  const levantados = hallazgosAsignados.filter(h => h.estado_hallazgo === 'Levantado');
+  const total = hallazgosAsignados.length;
+  document.getElementById('hallazgos-subtitle').textContent = `${pendientes.length} pendientes · ${levantados.length} levantados`;
+
+  if (total === 0) {
+    list.innerHTML = `<div class="hallazgos-empty"><div class="empty-icon">✅</div><p style="font-size:15px;font-weight:600;color:var(--gray-600);">Sin hallazgos asignados</p><p style="font-size:13px;margin-top:6px;">No tienes planes de acción pendientes</p></div>`;
+    return;
+  }
+
+  const today = new Date(); today.setHours(0,0,0,0);
+  let html = '';
+
+  if (pendientes.length > 0) {
+    html += `<div style="font-size:12px;font-weight:700;color:var(--gray-400);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">Pendientes (${pendientes.length})</div>`;
+    pendientes.forEach((h, i) => { html += renderHallazgoCard(h, i, today); });
+  }
+
+  if (levantados.length > 0) {
+    html += `<div style="font-size:12px;font-weight:700;color:var(--gray-400);text-transform:uppercase;letter-spacing:1px;margin:16px 0 10px;">Levantados (${levantados.length})</div>`;
+    levantados.forEach((h, i) => { html += renderHallazgoCard(h, i + pendientes.length, today); });
+  }
+
+  list.innerHTML = html;
+}
+
+function renderHallazgoCard(h, idx, today) {
+  const levantado = h.estado_hallazgo === 'Levantado';
+  let fechaLimite = '';
+  let vencido = false;
+  if (h.fecha_limite) {
+    const fl = new Date(h.fecha_limite);
+    vencido = !levantado && fl < today;
+    fechaLimite = fl.toLocaleDateString('es-PE', {day:'2-digit', month:'short', year:'numeric'});
+  }
+  const estadoClass = levantado ? 'levantado' : vencido ? 'vencido' : 'pendiente';
+  const estadoLabel = levantado ? '✓ Levantado' : vencido ? '⚠️ Vencido' : '● Pendiente';
+  return `
+    <div class="hallazgo-card ${levantado ? 'levantado' : ''}">
+      <div class="hallazgo-card-header">
+        <span class="hallazgo-vcc-badge">${h.vcc} · ${h.control}</span>
+        <span class="hallazgo-estado ${estadoClass}">${estadoLabel}</span>
+      </div>
+      <div class="hallazgo-pregunta">${h.pregunta || ''}</div>
+      <div class="hallazgo-obs">${h.observacion || ''}</div>
+      <div class="hallazgo-plan">📋 ${h.plan || ''}</div>
+      <div class="hallazgo-meta">
+        <span>👤 ${h.verificador || ''}</span>
+        <span class="${vencido ? 'vencido-text' : ''}">📅 ${fechaLimite || 'Sin fecha'}</span>
+      </div>
+      ${!levantado ? `<button class="btn-levantar" onclick="abrirModalLevantar(${idx})">Registrar levantamiento</button>` : 
+        `<div style="font-size:12px;color:#16a34a;text-align:center;padding:6px 0;">Levantado el ${h.fecha_cierre || ''}</div>`}
+    </div>`;
+}
+
+function abrirModalLevantar(idx) {
+  hallazgoActivo = hallazgosAsignados.filter(h => h.estado_hallazgo !== 'Levantado')[idx];
+  if (!hallazgoActivo) hallazgoActivo = hallazgosAsignados[idx];
+  fotoLevantamiento = null;
+  document.getElementById('levantar-descripcion').value = '';
+  document.getElementById('levantar-foto-preview').style.display = 'none';
+  document.getElementById('modal-hallazgo-desc').textContent = hallazgoActivo.observacion || '';
+  document.getElementById('modal-levantar').style.display = 'block';
+}
+
+function cerrarModalLevantar() {
+  document.getElementById('modal-levantar').style.display = 'none';
+  hallazgoActivo = null;
+  fotoLevantamiento = null;
+}
+
+function handleFotoLevantar(input) {
+  if (!input.files || !input.files[0]) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    fotoLevantamiento = e.target.result;
+    document.getElementById('levantar-foto-preview').src = fotoLevantamiento;
+    document.getElementById('levantar-foto-preview').style.display = 'block';
+  };
+  reader.readAsDataURL(input.files[0]);
+}
+
+function confirmarLevantamiento() {
+  const descripcion = document.getElementById('levantar-descripcion').value.trim();
+  if (!descripcion) { showToast('📋 Describe el levantamiento'); return; }
+  if (!fotoLevantamiento) { showToast('📸 Adjunta una foto de evidencia'); return; }
+
+  const fechaCierre = new Date().toLocaleDateString('es-PE');
+  const payload = {
+    action: 'levantarHallazgo',
+    fila: hallazgoActivo.fila,
+    descripcion: descripcion,
+    fecha_cierre: fechaCierre,
+    dni_responsable: state.user.dni,
+    nombre_responsable: state.user.nombre,
+    correo_verificador: hallazgoActivo.correo_verificador || '',
+    vcc: hallazgoActivo.vcc,
+    control: hallazgoActivo.control,
+    observacion: hallazgoActivo.observacion
+  };
+
+  // Actualizar localmente
+  if (hallazgoActivo) hallazgoActivo.estado_hallazgo = 'Levantado';
+  hallazgoActivo.fecha_cierre = fechaCierre;
+  localStorage.setItem('vcc_hallazgos', JSON.stringify(hallazgosAsignados));
+
+  cerrarModalLevantar();
+  showToast('✓ Levantamiento registrado', 'success');
+  renderHallazgos();
+  actualizarBadgeHallazgos();
+
+  // Enviar al servidor en segundo plano
+  setTimeout(() => {
+    fetch(SHEETS_URL + '?action=levantarHallazgo&fila=' + payload.fila +
+      '&descripcion=' + encodeURIComponent(payload.descripcion) +
+      '&fecha_cierre=' + encodeURIComponent(payload.fecha_cierre) +
+      '&dni_responsable=' + encodeURIComponent(payload.dni_responsable) +
+      '&nombre_responsable=' + encodeURIComponent(payload.nombre_responsable) +
+      '&correo_verificador=' + encodeURIComponent(payload.correo_verificador) +
+      '&vcc=' + encodeURIComponent(payload.vcc) +
+      '&control=' + encodeURIComponent(payload.control) +
+      '&observacion=' + encodeURIComponent(payload.observacion)
+    ).catch(() => {});
+  }, 0);
+}
+
 // ─── PERSONAL BUSCADOR ────────────────────────────────────────────────
 let listaPersonal = []; // Se carga desde el Sheet
 
@@ -1031,6 +1272,12 @@ function doLogin() {
           setTimeout(() => loadResponsesFromSheets(), 100);
         }
         cargarListaPersonal();
+        // Cargar hallazgos asignados en segundo plano
+        setTimeout(() => {
+          const cachedH = localStorage.getItem('vcc_hallazgos');
+          if (cachedH) { try { hallazgosAsignados = JSON.parse(cachedH); actualizarBadgeHallazgos(); } catch(e) {} }
+          cargarHallazgos();
+        }, 500);
       } else {
         document.getElementById('login-error').style.display = 'block';
       }
