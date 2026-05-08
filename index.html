@@ -515,6 +515,38 @@ if ('serviceWorker' in navigator) {
   .search-dropdown-item .item-detalle { font-size:11px; color:var(--gray-400); margin-top:1px; }
   .search-dropdown-item:last-child { border-bottom:none; }
 
+  /* Dashboard */
+  .dash-kpi-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:20px; }
+  .dash-kpi-card { background:var(--white); border-radius:var(--radius); padding:16px; box-shadow:var(--shadow-sm); text-align:center; }
+  .dash-kpi-value { font-size:32px; font-weight:800; color:var(--navy); line-height:1; margin-bottom:4px; }
+  .dash-kpi-label { font-size:11px; color:var(--gray-400); font-weight:600; text-transform:uppercase; letter-spacing:0.5px; }
+  .dash-kpi-card.red .dash-kpi-value { color:#dc2626; }
+  .dash-kpi-card.green .dash-kpi-value { color:#059669; }
+  .dash-kpi-card.orange .dash-kpi-value { color:#d97706; }
+  .dash-section-title { font-size:13px; font-weight:700; color:var(--gray-500); text-transform:uppercase; letter-spacing:1px; margin:0 0 12px; }
+  .dash-area-card { background:var(--white); border-radius:var(--radius); padding:14px 16px; margin-bottom:10px; box-shadow:var(--shadow-sm); }
+  .dash-area-name { font-size:14px; font-weight:700; color:var(--navy); margin-bottom:8px; }
+  .dash-area-bar { height:8px; background:var(--gray-100); border-radius:4px; overflow:hidden; margin-bottom:6px; }
+  .dash-area-bar-fill { height:100%; border-radius:4px; background:linear-gradient(90deg,var(--blue),#3b82f6); transition:width 0.5s; }
+  .dash-area-stats { display:flex; gap:12px; font-size:11px; }
+  .dash-area-stats span { color:var(--gray-400); }
+  .dash-area-stats .completado { color:#059669; font-weight:700; }
+  .dash-area-stats .no-eficiente { color:#dc2626; font-weight:700; }
+  .dash-verif-card { background:var(--white); border-radius:var(--radius); padding:14px 16px; margin-bottom:10px; box-shadow:var(--shadow-sm); display:flex; align-items:center; gap:12px; }
+  .dash-verif-avatar { width:40px; height:40px; border-radius:50%; background:var(--navy); color:white; display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:700; flex-shrink:0; }
+  .dash-verif-info { flex:1; min-width:0; }
+  .dash-verif-nombre { font-size:13px; font-weight:700; color:var(--navy); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .dash-verif-area { font-size:11px; color:var(--gray-400); }
+  .dash-verif-badges { display:flex; gap:6px; margin-top:4px; flex-wrap:wrap; }
+  .dash-badge { font-size:10px; font-weight:700; padding:2px 7px; border-radius:6px; }
+  .dash-badge.completado { background:#d1fae5; color:#059669; }
+  .dash-badge.progreso { background:#fef9c3; color:#a16207; }
+  .dash-badge.pendiente { background:#f1f5f9; color:#64748b; }
+  .dash-badge.hallazgo { background:#fef2f2; color:#dc2626; }
+  .dash-hallazgo-card { background:var(--white); border-radius:var(--radius); padding:14px 16px; margin-bottom:10px; box-shadow:var(--shadow-sm); border-left:4px solid #ef4444; }
+  .dash-hallazgo-card.vencido { border-left-color:#f97316; }
+  .dash-empty { text-align:center; padding:40px 20px; color:var(--gray-400); }
+
   /* Planes de acción */
   .hallazgo-card {
     background:var(--white); border-radius:var(--radius); padding:16px;
@@ -646,16 +678,27 @@ if ('serviceWorker' in navigator) {
 
 <!-- SCREEN: DASHBOARD ADMIN -->
 <div id="screen-dashboard" class="screen">
-  <div class="app-header">
+  <div class="app-header" style="position:sticky;top:0;z-index:10;">
     <button class="btn-back" onclick="goBack()">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
     </button>
-    <div class="header-title"><h2>Dashboard</h2><p>Panel de administrador</p></div>
+    <div class="header-title"><h2>Dashboard</h2><p id="dash-subtitle">Panel de administrador</p></div>
+    <button onclick="cargarDashboard()" style="background:rgba(255,255,255,0.15);border:none;border-radius:10px;color:white;padding:8px 12px;font-size:12px;font-weight:600;font-family:'Barlow',sans-serif;cursor:pointer;">↻ Actualizar</button>
   </div>
-  <div style="padding:20px;text-align:center;color:var(--gray-400);margin-top:60px;">
-    <div style="font-size:48px;margin-bottom:12px;">🚧</div>
-    <p style="font-size:16px;font-weight:600;">Dashboard en construcción</p>
-    <p style="font-size:13px;margin-top:8px;">Próximamente disponible — Power BI</p>
+
+  <!-- Tabs -->
+  <div style="display:flex;background:var(--white);border-bottom:2px solid var(--gray-100);position:sticky;top:64px;z-index:9;">
+    <button id="dash-tab-resumen" onclick="switchDashTab('resumen')" style="flex:1;padding:12px 6px;border:none;background:none;font-size:12px;font-weight:700;font-family:'Barlow',sans-serif;cursor:pointer;color:var(--blue);border-bottom:2px solid var(--blue);margin-bottom:-2px;">📊 Resumen</button>
+    <button id="dash-tab-areas" onclick="switchDashTab('areas')" style="flex:1;padding:12px 6px;border:none;background:none;font-size:12px;font-weight:700;font-family:'Barlow',sans-serif;cursor:pointer;color:var(--gray-400);border-bottom:2px solid transparent;margin-bottom:-2px;">🏭 Áreas</button>
+    <button id="dash-tab-verificadores" onclick="switchDashTab('verificadores')" style="flex:1;padding:12px 6px;border:none;background:none;font-size:12px;font-weight:700;font-family:'Barlow',sans-serif;cursor:pointer;color:var(--gray-400);border-bottom:2px solid transparent;margin-bottom:-2px;">👥 Personal</button>
+    <button id="dash-tab-hallazgos" onclick="switchDashTab('hallazgos')" style="flex:1;padding:12px 6px;border:none;background:none;font-size:12px;font-weight:700;font-family:'Barlow',sans-serif;cursor:pointer;color:var(--gray-400);border-bottom:2px solid transparent;margin-bottom:-2px;">⚠️ Hallazgos</button>
+  </div>
+
+  <div style="padding:16px;" id="dash-content">
+    <div style="text-align:center;padding:40px;color:var(--gray-400);">
+      <div style="font-size:32px;margin-bottom:8px;">⏳</div>
+      <p>Cargando dashboard...</p>
+    </div>
   </div>
 </div>
 
@@ -915,6 +958,184 @@ if ('serviceWorker' in navigator) {
 </div>
 
 <script>
+// ─── DASHBOARD ADMIN ──────────────────────────────────────────────────
+let dashData = null;
+let dashTab = 'resumen';
+
+function renderDashboard() {
+  cargarDashboard();
+}
+
+function cargarDashboard() {
+  document.getElementById('dash-content').innerHTML = '<div style="text-align:center;padding:40px;color:var(--gray-400);"><div style="font-size:32px;margin-bottom:8px;">⏳</div><p>Cargando...</p></div>';
+  fetch(SHEETS_URL + '?action=getDashboard')
+    .then(r => r.json())
+    .then(data => {
+      if (data.result === 'ok') {
+        dashData = data;
+        localStorage.setItem('vcc_dashboard', JSON.stringify(dashData));
+        renderDashTab(dashTab);
+        document.getElementById('dash-subtitle').textContent = 'Actualizado ahora';
+      }
+    })
+    .catch(() => {
+      const cached = localStorage.getItem('vcc_dashboard');
+      if (cached) {
+        dashData = JSON.parse(cached);
+        renderDashTab(dashTab);
+        document.getElementById('dash-subtitle').textContent = 'Datos en caché';
+      } else {
+        document.getElementById('dash-content').innerHTML = '<div class="dash-empty"><p>Sin conexión y sin datos en caché</p></div>';
+      }
+    });
+}
+
+function switchDashTab(tab) {
+  dashTab = tab;
+  ['resumen','areas','verificadores','hallazgos'].forEach(t => {
+    const btn = document.getElementById('dash-tab-' + t);
+    if (t === tab) {
+      btn.style.color = 'var(--blue)';
+      btn.style.borderBottom = '2px solid var(--blue)';
+    } else {
+      btn.style.color = 'var(--gray-400)';
+      btn.style.borderBottom = '2px solid transparent';
+    }
+  });
+  if (dashData) renderDashTab(tab);
+}
+
+function renderDashTab(tab) {
+  const el = document.getElementById('dash-content');
+  if (!dashData) return;
+  if (tab === 'resumen') el.innerHTML = renderDashResumen();
+  else if (tab === 'areas') el.innerHTML = renderDashAreas();
+  else if (tab === 'verificadores') el.innerHTML = renderDashVerificadores();
+  else if (tab === 'hallazgos') el.innerHTML = renderDashHallazgos();
+}
+
+function renderDashResumen() {
+  const k = dashData.kpi;
+  const totalCtrls = dashData.verificadores.reduce((s, v) => s + v.totalControles, 0);
+  const completados = dashData.verificadores.reduce((s, v) => s + v.completados, 0);
+  const pct = totalCtrls > 0 ? Math.round(completados / totalCtrls * 100) : 0;
+  return `
+    <div class="dash-kpi-grid">
+      <div class="dash-kpi-card">
+        <div class="dash-kpi-value">${k.totalVerificadores}</div>
+        <div class="dash-kpi-label">Verificadores</div>
+      </div>
+      <div class="dash-kpi-card">
+        <div class="dash-kpi-value">${pct}%</div>
+        <div class="dash-kpi-label">Avance general</div>
+      </div>
+      <div class="dash-kpi-card orange">
+        <div class="dash-kpi-value">${k.hallazgosPendientes}</div>
+        <div class="dash-kpi-label">Hallazgos pendientes</div>
+      </div>
+      <div class="dash-kpi-card green">
+        <div class="dash-kpi-value">${k.hallazgosLevantados}</div>
+        <div class="dash-kpi-label">Hallazgos levantados</div>
+      </div>
+    </div>
+    <p class="dash-section-title">Progreso general</p>
+    <div style="background:var(--white);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow-sm);margin-bottom:16px;">
+      <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+        <span style="font-size:13px;font-weight:600;color:var(--gray-600);">Controles completados</span>
+        <span style="font-size:13px;font-weight:700;color:var(--navy);">${completados} / ${totalCtrls}</span>
+      </div>
+      <div style="height:12px;background:var(--gray-100);border-radius:6px;overflow:hidden;">
+        <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,var(--blue),#3b82f6);border-radius:6px;transition:width 0.5s;"></div>
+      </div>
+    </div>
+    <p class="dash-section-title">Hallazgos totales: ${k.totalHallazgos}</p>
+    <div class="dash-kpi-grid">
+      <div class="dash-kpi-card red">
+        <div class="dash-kpi-value">${k.hallazgosPendientes}</div>
+        <div class="dash-kpi-label">Pendientes</div>
+      </div>
+      <div class="dash-kpi-card green">
+        <div class="dash-kpi-value">${k.hallazgosLevantados}</div>
+        <div class="dash-kpi-label">Levantados</div>
+      </div>
+    </div>`;
+}
+
+function renderDashAreas() {
+  const areas = dashData.areas;
+  if (!Object.keys(areas).length) return '<div class="dash-empty"><p>Sin datos de áreas</p></div>';
+  let html = '<p class="dash-section-title">Avance por área</p>';
+  Object.entries(areas).sort((a,b) => b[1].total - a[1].total).forEach(([area, d]) => {
+    const pct = d.total > 0 ? Math.round(d.completados / d.total * 100) : 0;
+    html += `
+      <div class="dash-area-card">
+        <div class="dash-area-name">${area}</div>
+        <div class="dash-area-bar"><div class="dash-area-bar-fill" style="width:${pct}%"></div></div>
+        <div class="dash-area-stats">
+          <span class="completado">✓ ${d.completados} completados</span>
+          <span>${d.enProgreso} en progreso</span>
+          <span>${d.pendientes} pendientes</span>
+          ${d.noEficientes > 0 ? `<span class="no-eficiente">⚠️ ${d.noEficientes} no eficientes</span>` : ''}
+        </div>
+      </div>`;
+  });
+  return html;
+}
+
+function renderDashVerificadores() {
+  const verifs = dashData.verificadores;
+  if (!verifs.length) return '<div class="dash-empty"><p>Sin verificadores</p></div>';
+  let html = '<p class="dash-section-title">Estado por verificador</p>';
+  verifs.sort((a,b) => b.completados - a.completados).forEach(v => {
+    const inicial = v.nombre ? v.nombre.charAt(0) : '?';
+    const pendientes = v.totalControles - v.completados;
+    html += `
+      <div class="dash-verif-card">
+        <div class="dash-verif-avatar">${inicial}</div>
+        <div class="dash-verif-info">
+          <div class="dash-verif-nombre">${v.nombre || v.email}</div>
+          <div class="dash-verif-area">${v.area}</div>
+          <div class="dash-verif-badges">
+            ${v.completados > 0 ? `<span class="dash-badge completado">✓ ${v.completados} completados</span>` : ''}
+            ${pendientes > 0 ? `<span class="dash-badge pendiente">${pendientes} pendientes</span>` : ''}
+            ${v.noEficientes > 0 ? `<span class="dash-badge hallazgo">⚠️ ${v.noEficientes} no eficiente</span>` : ''}
+            ${v.hallazgos > 0 ? `<span class="dash-badge hallazgo">🔴 ${v.hallazgos} hallazgos</span>` : ''}
+          </div>
+        </div>
+      </div>`;
+  });
+  return html;
+}
+
+function renderDashHallazgos() {
+  const hallazgos = dashData.hallazgosPendientes;
+  if (!hallazgos.length) return '<div class="dash-empty"><div style="font-size:48px;margin-bottom:12px;">✅</div><p style="font-weight:600;">Sin hallazgos pendientes</p></div>';
+  const today = new Date(); today.setHours(0,0,0,0);
+  let html = `<p class="dash-section-title">${hallazgos.length} hallazgos pendientes</p>`;
+  hallazgos.forEach(h => {
+    let vencido = false;
+    let fechaStr = 'Sin fecha';
+    if (h.fechaLimite) {
+      const fl = new Date(h.fechaLimite);
+      vencido = fl < today;
+      fechaStr = fl.toLocaleDateString('es-PE', {day:'2-digit', month:'short', year:'numeric'});
+    }
+    html += `
+      <div class="dash-hallazgo-card ${vencido ? 'vencido' : ''}">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+          <span style="font-size:11px;font-weight:700;background:var(--navy);color:white;padding:2px 8px;border-radius:6px;">${h.vcc} · ${h.control}</span>
+          <span style="font-size:11px;color:${vencido ? '#dc2626' : 'var(--gray-400)'};font-weight:${vencido ? '700' : '400'};">📅 ${fechaStr}${vencido ? ' ⚠️ VENCIDO' : ''}</span>
+        </div>
+        <div style="font-size:13px;font-weight:600;color:var(--gray-800);margin-bottom:4px;">${h.observacion}</div>
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--gray-400);">
+          <span>👤 Detectado por: ${h.verificador}</span>
+          <span>→ ${h.personalAsignado || 'Sin asignar'}</span>
+        </div>
+      </div>`;
+  });
+  return html;
+}
+
 // ─── PLANES DE ACCIÓN / HALLAZGOS ─────────────────────────────────────
 let hallazgosAsignados = [];
 let hallazgoActivo = null;
