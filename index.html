@@ -1512,15 +1512,22 @@ function doLogin() {
       // Sin internet: buscar en caché local
       const cached = localStorage.getItem('vcc_user');
       if (cached) {
-        const u = JSON.parse(cached);
-        if (u.dni === dni) {
-          state.user = u;
-          if (u.rol === 'admin') { renderDashboard(); navigate('screen-dashboard'); }
-          else { renderHome(); navigate('screen-home'); }
-          return;
-        }
+        try {
+          const u = JSON.parse(cached);
+          if (String(u.dni) === String(dni)) {
+            state.user = u;
+            renderHome();
+            navigate('screen-home');
+            if (u.rol === 'admin') {
+              const btnDash = document.getElementById('btn-dashboard-home');
+              if (btnDash) btnDash.style.display = 'block';
+            }
+            cargarListaPersonal();
+            return;
+          }
+        } catch(ex) {}
       }
-      showToast('Sin conexión. Intenta de nuevo.');
+      showToast('Sin conexión y DNI no reconocido localmente.');
     });
 }
 
@@ -1648,12 +1655,15 @@ function doLogout() {
   if (confirm('¿Cerrar sesión?')) {
     localStorage.removeItem('vcc_user');
     localStorage.removeItem('vcc_respuestas');
+    localStorage.removeItem('vcc_programaciones');
     state.user = null;
     state.respuestas = {};
+    state.programaciones = [];
     state.screenStack = [];
+    document.getElementById('login-dni').value = '';
+    document.getElementById('login-user-preview').style.display = 'none';
+    document.getElementById('login-error').style.display = 'none';
     showScreen('screen-login');
-    document.getElementById('login-email').value = '';
-    document.getElementById('login-nombre').value = '';
   }
 }
 
