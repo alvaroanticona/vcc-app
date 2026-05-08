@@ -275,6 +275,7 @@ if ('serviceWorker' in navigator) {
     background: #fef3c7; color: #d97706;
   }
   .vcc-status.done { background: #d1fae5; color: #059669; }
+  .vcc-status.in-progress { background: #fef9c3; color: #a16207; }
   .vcc-arrow { color: var(--gray-400); flex-shrink: 0; }
 
   /* CONTROLES SCREEN */
@@ -1474,6 +1475,12 @@ function renderHome() {
     const totalPregs = controlesAsignadosVCC2.reduce((s, ctrlId) => s + (vcc.controles[ctrlId]?.preguntas.length || 0), 0);
     const respVCC = Object.keys(state.respuestas).filter(k => k.startsWith(vccId) && controlesAsignadosVCC2.some(c => k.includes('_' + c + '_'))).length;
     const isDone = totalPregs > 0 && respVCC >= totalPregs;
+    const tieneNo = controlesAsignadosVCC2.some(ctrlId =>
+      Object.entries(state.respuestas).some(([k, v]) => k.startsWith(vccId + '_' + ctrlId + '_') && v.resultado === 'NO')
+    );
+    const eficiente = isDone && !tieneNo;
+    const estadoLabel = isDone ? '✓ Completado' : respVCC > 0 ? '◑ En Progreso' : '○ Pendiente';
+    const estadoClass = isDone ? 'done' : respVCC > 0 ? 'in-progress' : '';
     const card = document.createElement('div');
     card.className = 'vcc-card';
     card.style.animationDelay = `${idx * 0.05}s`;
@@ -1483,8 +1490,8 @@ function renderHome() {
         <div class="vcc-code">${vccId}</div>
         <div class="vcc-desc">${vcc.desc}</div>
         <div class="vcc-meta">
-          <span class="vcc-status ${isDone ? 'done' : ''}">${isDone ? '✓ Completado' : 'Pendiente'}</span>
-          <span style="font-size:11px;color:var(--gray-400)">${respVCC}/${totalPregs} preguntas</span>
+          <span class="vcc-status ${estadoClass}">${estadoLabel}</span>
+          ${isDone ? `<span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:6px;${eficiente ? 'background:#d1fae5;color:#059669;' : 'background:#fff7ed;color:#c2410c;'}">${eficiente ? '⭐ Eficiente' : '⚠️ No Eficiente'}</span>` : `<span style="font-size:11px;color:var(--gray-400)">${respVCC}/${totalPregs} preguntas</span>`}
         </div>
       </div>
       <div class="vcc-arrow">
