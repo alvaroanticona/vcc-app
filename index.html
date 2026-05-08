@@ -1821,6 +1821,7 @@ function guardarRespuesta() {
     personal_asignado_nombre: document.getElementById('form-personal-nombre').value || '',
     personal_asignado_correo: document.getElementById('form-personal-correo').value || '',
     fecha_limite: document.getElementById('form-fecha-limite').value || '',
+    total_preguntas: VCC_DATA[state.currentVCC]?.controles[state.currentControl]?.preguntas.length || 0,
     foto: state.formData.foto || '',
     fotoHallazgo: state.formData.fotoHallazgo || ''
   };
@@ -2040,7 +2041,8 @@ function syncToSheets(payload, isPending) {
     personal_asignado_nombre: payload.personal_asignado_nombre || '',
     personal_asignado_correo: payload.personal_asignado_correo || '',
     fecha_limite: payload.fecha_limite || '',
-    foto: payload.foto || '', fotoHallazgo: payload.fotoHallazgo || ''
+    foto: payload.foto || '', fotoHallazgo: payload.fotoHallazgo || '',
+    total_preguntas: payload.total_preguntas || 0
   };
   // Fire and forget — no bloquea la UI
   setTimeout(() => {
