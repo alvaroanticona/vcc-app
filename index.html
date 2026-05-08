@@ -1317,12 +1317,13 @@ function confirmarLevantamiento() {
 let listaPersonal = []; // Se carga desde el Sheet
 
 function cargarListaPersonal() {
-  // Cargar del caché inmediatamente para que funcione offline
   const cached = localStorage.getItem('vcc_personal');
   if (cached) {
-    try { listaPersonal = JSON.parse(cached); } catch(e) {}
+    try {
+      const parsed = JSON.parse(cached);
+      if (parsed && parsed.length > 0) listaPersonal = parsed;
+    } catch(e) {}
   }
-  // Actualizar desde el servidor en segundo plano
   fetch(SHEETS_URL + '?action=getUsuarios')
     .then(r => r.json())
     .then(data => {
@@ -1331,7 +1332,7 @@ function cargarListaPersonal() {
         localStorage.setItem('vcc_personal', JSON.stringify(listaPersonal));
       }
     })
-    .catch(() => {}); // silencioso — ya tenemos el caché
+    .catch(() => {});
 }
 
 function filtrarPersonal(query) {
